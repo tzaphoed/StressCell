@@ -1,0 +1,57 @@
+{
+ "format": "stresscell-sequence",
+ "version": 1,
+ "name": "Force sweep at 4 K",
+ "steps": [
+  {
+   "op": "output",
+   "on": true
+  },
+  {
+   "op": "tare",
+   "comment": "Nullpunkt bei 300 K. Kein Tare bei 4 K: es würde thermische Spannung ausblenden."
+  },
+  {
+   "op": "set_temperature",
+   "T": 4,
+   "rate": 5
+  },
+  {
+   "op": "wait_temperature",
+   "tol": 0.05,
+   "hold": 120
+  },
+  {
+   "op": "force_sweep",
+   "from": 0,
+   "to": 10,
+   "points": 6,
+   "tol": 0.05,
+   "hold": 10,
+   "n": 5,
+   "dt": 2,
+   "label": "up"
+  },
+  {
+   "op": "force_sweep",
+   "from": 10,
+   "to": 0,
+   "points": 6,
+   "tol": 0.05,
+   "hold": 10,
+   "n": 5,
+   "dt": 2,
+   "label": "down"
+  },
+  {
+   "op": "zero_drive"
+  },
+  {
+   "op": "wait_voltage"
+  },
+  {
+   "op": "log",
+   "message": "done"
+  }
+ ]
+}

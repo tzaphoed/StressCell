@@ -1,0 +1,13 @@
+# Platzhalter. Zahlen und Vorzeichen vom Kalibrierblatt deiner Zelle eintragen.
+# Mit verified = false läuft an echten Geräten kein Kraftregler.
+
+[cell]
+serial = "FC100-example"
+verified = false
+
+[force]
+sign = 1                 # +1: Kapazität steigt unter Zug. Nicht im Datenblatt, am Blatt oder im Versuch prüfen.
+S_pF_N = 0.0005          # Datenblatt: typisch 0,5 fF/N bei Kraft null
+C_zero_pF = 1.1          # wird von "tare" ersetzt
+offset_table = [[0.0, 0.0], [400.0, 0.0]]   # [T in K, Versatz in pF]
+alpha_table = [[0.0, 1.0], [400.0, 1.0]]    # [T in K, Verstärkungsfaktor]

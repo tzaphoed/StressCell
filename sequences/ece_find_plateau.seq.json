@@ -1,0 +1,12 @@
+{
+ "format": "stresscell-sequence",
+ "version": 1,
+ "name": "AC elastocaloric: find the frequency plateau",
+ "comment": "Bei jeder neuen Probe. Amplitude und Phase gegen f auftragen, Arbeitsfrequenz auf das Plateau legen.",
+ "steps": [
+  {"op": "output", "on": true},
+  {"op": "ac_on", "f": 2, "V": 2},
+  {"op": "frequency_sweep", "from": 2, "to": 200, "points": 15, "settle": 10, "n": 5, "dt": 2, "label": "plateau"},
+  {"op": "ac_off"}
+ ]
+}

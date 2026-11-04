@@ -1,0 +1,9 @@
+__pycache__/
+.pytest_cache/
+backend/venv/
+backend/access.json
+backend/instrument_check_*.txt
+data/
+logs/
+*.tare.json
+*.log

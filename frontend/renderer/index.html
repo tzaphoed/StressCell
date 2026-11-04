@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="stresscell-token" content="__TOKEN__">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; img-src 'self' data: blob:;
+                 style-src 'self' 'unsafe-inline'; connect-src 'self' ws://127.0.0.1:8020 ws://localhost:8020;">
+  <title>StressCell</title>
+  <!-- Alles lokal: der Messrechner braucht kein Internet -->
+  <script src="/static/vendor/plotly.min.js"></script>
+  <script src="/static/vendor/blockly_compressed.js"></script>
+  <script src="/static/vendor/blocks_compressed.js"></script>
+  <script src="/static/vendor/blockly_en.js"></script>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header id="titlebar">
+    <strong>StressCell</strong>
+    <span id="mode-pill" class="pill"></span>
+    <span id="run-pill" class="pill idle">idle</span>
+    <span id="run-text" class="muted"></span>
+    <span class="grow"></span>
+    <span id="conn" class="dot" title="Backend connection"></span>
+    <button id="stop-all" title="Stop sequence and force loop, ramp both channels to 0 V">STOP ALL</button>
+  </header>
+  <div id="alarm-bar" class="hidden"></div>
+  <div id="app">
+    <nav id="sidebar" aria-label="Pages">
+      <button class="nav active" data-page="cell">Cell</button>
+      <button class="nav" data-page="run">Run</button>
+      <button class="nav" data-page="editor">Editor</button>
+      <button class="nav" data-page="data">Data</button>
+      <button class="nav" data-page="limits">Limits</button>
+    </nav>
+    <main id="content">
+      <section id="page-cell" class="page active">
+        <div id="readouts" class="readouts"></div>
+        <div class="grid2">
+          <div class="card"><h3>Force</h3><div id="plot-force" class="plot"></div></div>
+          <div class="card"><h3>Stack voltages</h3><div id="plot-volt" class="plot"></div></div>
+          <div class="card"><h3>Temperature</h3><div id="plot-temp" class="plot"></div></div>
+          <div class="card" id="manual">
+            <h3>Manual control</h3>
+            <div class="row">
+              <button data-step='{"op":"output","on":true}'>Outputs on</button>
+              <button data-step='{"op":"output","on":false}'>Outputs off</button>
+              <button data-step='{"op":"zero_drive"}'>Zero drive</button>
+              <button data-step='{"op":"tare"}'>Tare force</button>
+              <button data-step='{"op":"tare","accept":true}' title="Below 250 K or above 10 N: only if the sample is not loaded">Tare, accept offset</button>
+              <button data-step='{"op":"release_force"}'>Release force loop</button>
+            </div>
+            <form class="row" data-op="set_drive"><label>Drive D [V]<input name="D" value="0"></label>
+              <label>Slew [V/s]<input name="slew" value="1"></label><button>Set drive</button></form>
+            <form class="row" data-op="goto_force"><label>Force [N]<input name="F" value="0"></label>
+              <label>Tol [N]<input name="tol" value="0.05"></label><button>Go to force</button></form>
+            <form class="row" data-op="set_temperature"><label>T [K]<input name="T" value="300"></label>
+              <label>Rate [K/min]<input name="rate" value="5"></label><button>Set T</button></form>
+            <form class="row" data-op="set_field"><label>B [T]<input name="B" value="0"></label>
+              <label>Rate [T/min]<input name="rate" value="0.3"></label><button>Set B</button></form>
+            <form class="row" data-op="ac_on"><label>AC f [Hz]<input name="f" value="21"></label>
+              <label>V peak [V]<input name="V" value="2"></label><button>AC on</button>
+              <button type="button" data-step='{"op":"ac_off"}'>AC off</button></form>
+            <p class="muted small">D = V<sub>T</sub> − V<sub>C</sub>, positive is tension.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="page-run" class="page">
+        <div class="grid2 wide-left">
+          <div class="card">
+            <h3>Sequence</h3>
+            <div class="row"><select id="seq-list"></select><button id="seq-reload">Refresh</button></div>
+            <div class="row">
+              <button id="seq-check">Check (dry run)</button>
+              <button id="seq-start" class="primary">Start</button>
+              <button id="seq-pause">Pause</button>
+              <button id="seq-resume">Resume</button>
+              <button id="seq-stop">Stop</button>
+              <button id="session-close" title="Ends an open Python session, its force loop and AC drive">Close session</button>
+            </div>
+            <pre id="seq-report" class="log"></pre>
+            <h3>Run log</h3>
+            <pre id="run-log" class="log tall"></pre>
+          </div>
+          <div class="card">
+            <h3>Points of this run</h3>
+            <div class="row"><label>x<select id="pt-x"></select></label><label>y<select id="pt-y"></select></label></div>
+            <div id="plot-points" class="plot tall"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="page-editor" class="page">
+        <div class="row">
+          <input id="ed-name" value="new_sequence" aria-label="Sequence name">
+          <button id="ed-load">Load selected</button>
+          <button id="ed-save" class="primary">Save</button>
+          <button id="ed-check">Check (dry run)</button>
+          <span id="ed-msg" class="muted"></span>
+        </div>
+        <div id="blockly"></div>
+      </section>
+
+      <section id="page-data" class="page">
+        <div class="grid2 wide-right">
+          <div class="card"><h3>Runs</h3><ul id="run-list" class="list"></ul></div>
+          <div class="card">
+            <h3 id="data-title">Select a run</h3>
+            <div class="row"><label>x<select id="dt-x"></select></label><label>y<select id="dt-y"></select></label></div>
+            <div id="plot-data" class="plot tall"></div>
+            <pre id="data-log" class="log"></pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="page-limits" class="page">
+        <div class="grid2">
+          <div class="card"><h3>Voltage window and operating point</h3><div id="plot-window" class="plot tall"></div></div>
+          <div class="card"><h3>Active limits</h3><table id="limit-table"></table>
+            <h3>Calibration</h3><table id="cal-table"></table></div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <div id="toasts" role="status"></div>
+  <script type="module" src="/static/app.js"></script>
+</body>
+</html>

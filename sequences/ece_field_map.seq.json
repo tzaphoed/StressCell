@@ -1,0 +1,124 @@
+{
+ "format": "stresscell-sequence",
+ "version": 1,
+ "name": "AC elastocaloric: temperature sweeps at several fields",
+ "comment": "Offset in N, Anregung klein. Vor dem ersten Lauf Frequenz mit ece_find_plateau bestimmen. Im Hochvakuum messen.",
+ "steps": [
+  {
+   "op": "output",
+   "on": true
+  },
+  {
+   "op": "set_variable",
+   "name": "f",
+   "value": 63
+  },
+  {
+   "op": "set_variable",
+   "name": "Vac",
+   "value": 2
+  },
+  {
+   "op": "for_range",
+   "var": "Bset",
+   "from": 0,
+   "to": 9,
+   "points": 4,
+   "do": [
+    {
+     "op": "ac_off"
+    },
+    {
+     "op": "set_temperature",
+     "T": 320,
+     "rate": 5
+    },
+    {
+     "op": "wait_temperature",
+     "tol": 0.2,
+     "hold": 60
+    },
+    {
+     "op": "set_field",
+     "B": "Bset",
+     "rate": 0.5
+    },
+    {
+     "op": "wait_field"
+    },
+    {
+     "op": "goto_force",
+     "F": -5,
+     "tol": 0.2,
+     "hold": 10
+    },
+    {
+     "op": "release_force"
+    },
+    {
+     "op": "measure_gain",
+     "step": 2,
+     "settle": 5
+    },
+    {
+     "op": "set_temperature",
+     "T": 280,
+     "rate": 5
+    },
+    {
+     "op": "wait_temperature",
+     "tol": 0.2,
+     "hold": 60
+    },
+    {
+     "op": "measure_gain",
+     "step": 2,
+     "settle": 5
+    },
+    {
+     "op": "set_temperature",
+     "T": 320,
+     "rate": 5
+    },
+    {
+     "op": "wait_temperature",
+     "tol": 0.2,
+     "hold": 60
+    },
+    {
+     "op": "ac_on",
+     "f": "f",
+     "V": "Vac"
+    },
+    {
+     "op": "temperature_sweep",
+     "to": 280,
+     "rate": 0.5,
+     "dt": 5,
+     "label": "cool {Bset} T"
+    },
+    {
+     "op": "temperature_sweep",
+     "to": 320,
+     "rate": 0.5,
+     "dt": 5,
+     "label": "warm {Bset} T"
+    }
+   ]
+  },
+  {
+   "op": "ac_off"
+  },
+  {
+   "op": "zero_drive"
+  },
+  {
+   "op": "wait_voltage"
+  },
+  {
+   "op": "set_field",
+   "B": 0,
+   "rate": 0.5
+  }
+ ]
+}

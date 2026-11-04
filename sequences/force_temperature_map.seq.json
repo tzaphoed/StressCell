@@ -1,0 +1,17 @@
+{
+ "format": "stresscell-sequence",
+ "version": 1,
+ "name": "Fixed force, temperature series",
+ "steps": [
+  {"op": "output", "on": true},
+  {"op": "for_range", "var": "Tset", "from": 300, "to": 10, "points": 8, "spacing": "log", "do": [
+    {"op": "zero_drive"},
+    {"op": "wait_voltage"},
+    {"op": "set_temperature", "T": "Tset", "rate": 3},
+    {"op": "wait_temperature", "tol": 0.1, "hold": 120},
+    {"op": "goto_force", "F": 5, "tol": 0.1, "hold": 20},
+    {"op": "measure", "n": 5, "dt": 2, "label": "{Tset} K"}
+  ]},
+  {"op": "zero_drive"}
+ ]
+}
