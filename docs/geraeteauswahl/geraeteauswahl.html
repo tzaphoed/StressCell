@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>FC100 Geräteauswahl</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm 16mm 15mm; }
+  :root {
+    --ink: #1b1f24; --muted: #5a6370; --line: #d5dae1; --soft: #f3f5f8;
+    --accent: #1f5fa8; --ok: #1e7a46; --warn: #a3620a; --bad: #b3261e;
+    --hv: #c0392b;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font-family: Inter, "DejaVu Sans", sans-serif; color: var(--ink); font-size: 9.6pt;
+         line-height: 1.42; margin: 0; background: #fff; }
+  h1 { font-size: 22pt; margin: 0 0 4pt; letter-spacing: -0.01em; }
+  h2 { font-size: 14pt; margin: 18pt 0 6pt; padding-bottom: 3pt; border-bottom: 1.5pt solid var(--accent);
+       color: var(--accent); break-after: avoid; }
+  h3 { font-size: 11pt; margin: 12pt 0 4pt; break-after: avoid; }
+  p { margin: 0 0 6pt; }
+  ul, ol { margin: 0 0 6pt; padding-left: 15pt; }
+  li { margin-bottom: 2pt; }
+  code, .mono { font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace; font-size: 8.6pt; }
+  .sub { color: var(--muted); font-size: 10.5pt; margin-bottom: 10pt; }
+  .page { break-before: page; }
+  table { width: 100%; border-collapse: collapse; margin: 4pt 0 8pt; font-size: 8.7pt; break-inside: auto; }
+  tr { break-inside: avoid; }
+  th { text-align: left; background: var(--soft); border-bottom: 1pt solid var(--line); padding: 4pt 5pt;
+       font-weight: 600; vertical-align: bottom; }
+  td { border-bottom: 0.6pt solid var(--line); padding: 4pt 5pt; vertical-align: top; }
+  td.dev { font-weight: 600; }
+  .tag { display: inline-block; padding: 0 4pt; border-radius: 3pt; font-size: 7.6pt; font-weight: 600;
+         white-space: nowrap; }
+  .t-ok { background: #e3f3ea; color: var(--ok); }
+  .t-plan { background: #e7eef8; color: var(--accent); }
+  .t-no { background: #f8e6e4; color: var(--bad); }
+  .t-warn { background: #fbefdc; color: var(--warn); }
+  .box { border: 1pt solid var(--line); border-left: 3.5pt solid var(--accent); background: var(--soft);
+         padding: 6pt 9pt; margin: 6pt 0 9pt; break-inside: avoid; }
+  .box.warn { border-left-color: var(--warn); background: #fdf7ee; }
+  .box.bad { border-left-color: var(--bad); background: #fcf1f0; }
+  .box.ok { border-left-color: var(--ok); background: #f0f8f3; }
+  .box h4 { margin: 0 0 3pt; font-size: 9.8pt; }
+  .box p:last-child, .box ul:last-child { margin-bottom: 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8pt; }
+  .card { border: 1pt solid var(--line); border-radius: 4pt; padding: 7pt 9pt; break-inside: avoid; }
+  .card h4 { margin: 0 0 3pt; font-size: 10pt; }
+  .chk { width: 22pt; text-align: center; }
+  .chk span { display: inline-block; width: 9pt; height: 9pt; border: 1pt solid var(--ink); border-radius: 1.5pt; }
+  .fill { color: #b0b6bf; }
+  figure { margin: 6pt 0 10pt; break-inside: avoid; }
+  figcaption { font-size: 8.4pt; color: var(--muted); margin-top: 3pt; }
+  svg text { font-family: Inter, "DejaVu Sans", sans-serif; }
+  .small { font-size: 8.4pt; color: var(--muted); }
+  .formula { font-family: "JetBrains Mono", monospace; background: var(--soft); padding: 1pt 4pt; border-radius: 2pt; }
+  .toc { columns: 2; column-gap: 18pt; font-size: 9.4pt; }
+  .toc div { break-inside: avoid; padding: 1.5pt 0; border-bottom: 0.5pt dotted var(--line); }
+  .num { display: inline-block; width: 18pt; color: var(--accent); font-weight: 700; }
+  .steps li { margin-bottom: 2pt; }
+  table.compact td, table.compact th { padding: 2.6pt 5pt; }
+</style>
+</head>
+<body>
+
+<!-- ============================ SEITE 1 ============================ -->
+<h1>FC100 im PPMS: Welche Geräte gehen?</h1>
+<div class="sub">Nachschlagewerk für den Laborschrank. Probe: NiMnSn, AC-Elastokalorik plus Laden und Entladen.
+Stand 4. November 2026, passend zu StressCell auf <span class="mono">github.com/tzaphoed/StressCell</span>.</div>
+
+<div class="box ok">
+  <h4>Kurzfassung</h4>
+  <p>Ohne RP100 ist der empfohlene Aufbau: <b>Keithley 2400</b> (DC auf den Druckstapel),
+  <b>SR860-Oszillator</b> (AC auf den Zugstapel), <b>SR860 mit SR560</b> (Thermospannung),
+  <b>AH2700A oder E4980A</b> (Kraft), <b>Oszilloskop</b> (Kontrolle der Stapelspannung, schnelles T(t)),
+  dazu eine kleine <b>Anschlussbox</b> mit vier Widerständen. Ein Hochspannungsverstärker ist für NiMnSn nicht nötig.</p>
+</div>
+
+<h3>Was du mindestens brauchst</h3>
+<table>
+  <tr><th style="width:24%">Funktion</th><th style="width:38%">Wozu</th><th>Erste Wahl ohne RP100</th></tr>
+  <tr><td class="dev">1 DC-Offset</td><td>Vorspannung auf den Druckstapel, setzt die mittlere Kraft</td><td>Keithley 2400 oder Keysight B2901A</td></tr>
+  <tr><td class="dev">2 AC-Anregung</td><td>Kleine Schwingung auf den Zugstapel</td><td>Oszillator des Lock-in (SR860)</td></tr>
+  <tr><td class="dev">3 Thermospannung AC</td><td>Misst ΔT der Probe bei der Anregungsfrequenz</td><td>Lock-in, davor SR560</td></tr>
+  <tr><td class="dev">4 Kraft DC</td><td>Liest den kapazitiven Kraftsensor (1,1 pF)</td><td>AH2700A, AH2550A oder E4980A</td></tr>
+  <tr><td class="dev">5 Kontrolle, schnell</td><td>Spannung am Stapel, Phase, T(t) beim Laden und Entladen</td><td>Oszilloskop, dazu 2182A</td></tr>
+  <tr><td class="dev">6 Kryostat</td><td>T, B, Kammer</td><td>PPMS über MultiPyVu (fest)</td></tr>
+  <tr><td class="dev">7 Anschlussbox</td><td>Strombegrenzung, Entladung, Trennung von AC und DC</td><td>Selbstbau, Bauteile auf Seite 9</td></tr>
+</table>
+
+<h3>Inhalt</h3>
+<div class="toc">
+  <div><span class="num">1</span>Grundregeln: warum welche Grenze</div>
+  <div><span class="num">2</span>DC-Offset: Quellen für den Druckstapel</div>
+  <div><span class="num">3</span>AC-Anregung: Quellen für den Zugstapel</div>
+  <div><span class="num">4</span>Thermospannung: Lock-in und Vorverstärker</div>
+  <div><span class="num">5</span>Kraft: Kapazitätsmessung</div>
+  <div><span class="num">6</span>Oszilloskop, Nanovoltmeter, DMM</div>
+  <div><span class="num">7</span>Fertige Aufbauten A, B, C</div>
+  <div><span class="num">8</span>Schaltbilder</div>
+  <div><span class="num">9</span>Anschlussbox: Bauteilliste</div>
+  <div><span class="num">10</span>Frequenz wählen</div>
+  <div><span class="num">11</span>Ablauf im Labor</div>
+  <div><span class="num">12</span>Fallen</div>
+  <div><span class="num">13</span>Schrank-Checkliste zum Abhaken</div>
+  <div><span class="num">14</span>Software: was vorhanden ist</div>
+</div>
+
+<div class="box">
+  <h4>Legende Software-Status</h4>
+  <p><span class="tag t-ok">Treiber vorhanden</span> im Code und gegen nachgebaute Geräte getestet, nicht an echter Hardware.
+  <span class="tag t-plan">geplant</span> Treiber vorgeschlagen, noch nicht geschrieben.
+  <span class="tag t-warn">nur Kontrolle</span> wird manuell benutzt, kein Treiber nötig.
+  <span class="tag t-no">kein Treiber</span> bewusst nicht vorgesehen, Begründung in der Tabelle.</p>
+</div>
+
+<!-- ============================ 1 GRUNDREGELN ============================ -->
+<h2 class="page">1 Grundregeln: warum welche Grenze</h2>
+<p>Alle Empfehlungen in diesem Dokument folgen aus fünf Eigenschaften der Zelle. Wer die kennt, kann auch ein Gerät
+beurteilen, das hier nicht steht.</p>
+
+<table>
+  <tr><th style="width:28%">Eigenschaft</th><th style="width:30%">Wert</th><th>Folge für die Geräte</th></tr>
+  <tr><td class="dev">Stapel sind Kondensatoren</td><td>Zug 3,1 µF, Druck 6,2 µF bei 300 K, bei 4 K deutlich weniger</td>
+      <td>Die Quelle muss beim Hochfahren Strom liefern und beim Herunterfahren Strom <b>aufnehmen</b> (vier Quadranten).
+      Ein einfaches Labornetzteil kann das nicht.</td></tr>
+  <tr><td class="dev">Stromgrenze</td><td>10 mA laut Datenblatt, Software rechnet mit 5 mA</td>
+      <td>Begrenzt die AC-Amplitude: I = 2π·f·C·V. Je höher die Frequenz, desto kleiner die erlaubte Spannung.</td></tr>
+  <tr><td class="dev">Spannungsfenster</td><td>unter 10 K ±200 V, ab 250 K nur −20 V bis +120 V je Kanal</td>
+      <td>Die Software führt das Fenster nach. Die Quelle muss ±200 V können, mehr ist nicht nötig.</td></tr>
+  <tr><td class="dev">Stapel nie offen</td><td>Pyroelektrische Spannung beim Abkühlen und Aufwärmen</td>
+      <td>Jede Quelle ohne eingebaute Entladung braucht einen Entladewiderstand (Bleeder) parallel zum Stapel.</td></tr>
+  <tr><td class="dev">Hub hängt an D = V<sub>T</sub> − V<sub>C</sub></td><td>AC auf beiden Gruppen gleichphasig hebt sich auf</td>
+      <td>AC auf den Zugstapel, DC auf den Druckstapel. Dann brauchst du keine Einkopplung und kein BNC-T.</td></tr>
+</table>
+
+<h3>Wie groß die Signale bei NiMnSn sind</h3>
+<p>Abschätzung bei 300 K für den thermoelastischen Anteil abseits des Übergangs. Am martensitischen Übergang ist das
+Signal größer. Annahmen: 1,5·10<sup>−4</sup> Dehnung je Volt Spitze (aus der Anleitung, Probe 1 mm, Steifigkeit wie die Zelle),
+E ≈ 40 GPa, ΔT/Δσ ≈ Tα/(ρc) ≈ 0,8 mK/MPa, Type E mit 61 µV/K. Bei 4 K ist der Hub je Volt etwa fünfmal kleiner.</p>
+<table>
+  <tr><th>Frequenz</th><th>größte Spitze bei 5 mA</th><th>Dehnung</th><th>Spannung σ</th><th>ΔT</th><th>Thermospannung</th></tr>
+  <tr><td>20 Hz</td><td>12,8 V, sinnvoll 2 V</td><td>3·10<sup>−4</sup></td><td>12 MPa</td><td>≈ 10 mK</td><td>≈ 0,6 µV</td></tr>
+  <tr><td>100 Hz</td><td>2,6 V, sinnvoll 2 V</td><td>3·10<sup>−4</sup></td><td>12 MPa</td><td>≈ 10 mK</td><td>≈ 0,6 µV</td></tr>
+  <tr><td>200 Hz</td><td>1,3 V</td><td>1,9·10<sup>−4</sup></td><td>8 MPa</td><td>≈ 6 mK</td><td>≈ 0,4 µV</td></tr>
+  <tr><td>500 Hz</td><td>0,5 V</td><td>7,7·10<sup>−5</sup></td><td>3 MPa</td><td>≈ 2,5 mK</td><td>≈ 150 nV</td></tr>
+  <tr><td>1000 Hz</td><td>0,26 V</td><td>3,9·10<sup>−5</sup></td><td>1,6 MPa</td><td>≈ 1,2 mK</td><td>≈ 75 nV</td></tr>
+</table>
+<div class="box">
+  <h4>Was daraus folgt</h4>
+  <ul>
+    <li>Die AC-Amplitude am Stapel liegt bei <b>0,3 bis 2 V</b>. Das liefert jeder Lock-in-Oszillator. Ein Hochspannungsverstärker ist unnötig.</li>
+    <li>Die Thermospannung liegt bei <b>50 nV bis 1 µV</b>. Das ist Lock-in-Gebiet. Ein Oszilloskop sieht das nicht.</li>
+    <li>Der Lock-in-Eingang rauscht mit 2,5 bis 6 nV/√Hz. Bei τ = 1 s (ENBW 0,125 Hz) sind das 1 bis 2 nV, also reichlich Abstand.</li>
+  </ul>
+</div>
+
+<!-- ============================ 2 DC ============================ -->
+<h2 class="page">2 DC-Offset: Quellen für den Druckstapel</h2>
+<p>Gesucht: ±200 V, vier Quadranten, Strommessung (für die Lichtbogenerkennung), fernsteuerbar. Die Rampe macht
+die Software, wenn das Gerät keine eigene hat. Vor das Gerät kommt immer <b>R1 = 15 kΩ</b> in Serie, wie im RP100.
+Er begrenzt den Strom und entkoppelt die Quelle vom Stapel.</p>
+
+<table>
+  <tr><th style="width:17%">Gerät</th><th style="width:13%">Bereich</th><th style="width:27%">Vorteile</th><th style="width:28%">Nachteile</th><th>Software</th></tr>
+  <tr><td class="dev">Razorbill RP100</td><td>±200 V, ±6 mA, 2 Kanäle</td><td>Für die Zelle gebaut, entlädt selbst, eigene Rampe</td>
+      <td>Steht nicht zur Verfügung</td><td><span class="tag t-ok">vorhanden</span></td></tr>
+  <tr><td class="dev">Keithley 2400</td><td>±210 V, 105 mA im 200-V-Bereich</td><td>In fast jedem Labor, misst Strom, SCPI einfach</td>
+      <td>Keine eigene Rampe, Ausgang aus heißt nicht entladen: Bleeder nötig</td><td><span class="tag t-ok">vorhanden</span> als Paar, <span class="tag t-plan">geplant</span> einzeln</td></tr>
+  <tr><td class="dev">Keithley 2410</td><td>±1100 V</td><td>Gleicher Befehlssatz wie 2400</td>
+      <td>Kann viel mehr als die Zelle verträgt. Software klemmt auf 200-V-Bereich</td><td><span class="tag t-plan">geplant</span></td></tr>
+  <tr><td class="dev">Keithley 2450</td><td>±200 V</td><td>Modern, Touchscreen, gute Strommessung</td>
+      <td>Anderer SCPI-Dialekt als 2400. Sicherstellen, dass er im SCPI-Modus läuft, nicht TSP</td><td><span class="tag t-plan">geplant</span></td></tr>
+  <tr><td class="dev">Keithley 2612B / 2614B / 2634B</td><td>±200 V, <b>2 Kanäle</b></td><td>Ein Gerät für beide Stapel, falls DC auf beiden gebraucht wird</td>
+      <td>TSP-Befehle statt SCPI</td><td><span class="tag t-plan">geplant</span></td></tr>
+  <tr><td class="dev">Keysight B2901A / B2902A</td><td>±210 V, B2902A mit <b>2 Kanälen</b></td><td>Sauber, schnell, SCPI, zweikanalig</td>
+      <td>Teurer, seltener im Schrank</td><td><span class="tag t-plan">geplant</span></td></tr>
+  <tr><td class="dev">HV-Verstärker an Aux-Ausgang (Tegam 2350, PiezoDrive PD200, Trek, Falco)</td><td>bis ±200 V, je nach Modell</td>
+      <td>Schnell, kann auch Pulse für Laden und Entladen</td>
+      <td>Liefert 40 mA bis 2 A: weit über 10 mA. Keine Strommessung, also keine Lichtbogenerkennung. R1 und Bleeder Pflicht</td>
+      <td><span class="tag t-ok">vorhanden</span> mit SR860-Aux, <span class="tag t-plan">geplant</span> SR830-Aux</td></tr>
+  <tr><td class="dev">Einfaches Labornetzteil (0 bis 200 V)</td><td>unipolar</td><td>Billig</td>
+      <td>Nimmt keinen Strom auf, nur eine Polarität, meist nicht fernsteuerbar. <b>Nicht nehmen.</b></td><td><span class="tag t-no">kein Treiber</span></td></tr>
+</table>
+
+<div class="box">
+  <h4>Was du am Gerät einstellen musst (alle SMU)</h4>
+  <ul>
+    <li><b>Spannungsquelle</b>, Bereich 200 V fest (nicht Auto: ein Bereichswechsel kann springen).</li>
+    <li><b>Strombegrenzung (Compliance) 6 mA</b>. Das ist die Hardware-Grenze, die Software schaltet schon bei 2 mA ab.</li>
+    <li><b>Ausgang-aus-Modus "Normal" oder "Zero"</b>, nicht "High-Z". So liegt bei Ausgang aus 0 V über R1 am Stapel.</li>
+    <li>Der Bleeder (1 MΩ) zieht bei 120 V konstant 0,12 mA. Die Software zieht das von der Strommessung ab, dafür steht <span class="mono">bleeder_R_ohm</span> in der Konfiguration.</li>
+  </ul>
+</div>
+
+<div class="box warn">
+  <h4>Warum nicht einfach den Lock-in-Aux-Ausgang ohne Verstärker?</h4>
+  <p>Aux liefert ±10 V. Bei 300 K reicht das für einen Hub von etwa 3 µm, bei NiMnSn gehst du für die Vorspannung aber eher
+  auf −50 bis −120 V. Für reine AC-Messungen ohne nennenswerte Vorspannung genügt es. Dann fällt Funktion 1 ganz weg und
+  der Druckstapel liegt nur über den Bleeder auf 0 V.</p>
+</div>
+
+<!-- ============================ 3 AC ============================ -->
+<h2 class="page">3 AC-Anregung: Quellen für den Zugstapel</h2>
+<p>Gesucht: Sinus bis etwa 2 V Spitze, 10 Hz bis 2 kHz, phasenstarr zum Detektor. Vor das Gerät kommt <b>R2</b>.
+Er sorgt dafür, dass auch bei voll aufgedrehtem Ausgang höchstens 10 mA fließen:</p>
+<p style="text-align:center"><span class="formula">R2 ≥ V<sub>Spitze,max</sub> / 10 mA − R<sub>Ausgang</sub></span></p>
+<p>R2 bildet mit dem Stapel einen Tiefpass. Bei f<sub>c</sub> = 1/(2π·R·C) sind am Stapel nur noch 71 % der Spannung
+und die Phase ist um 45° verschoben. Die Software rechnet das aus R2 und C heraus. Prüf es mit dem Oszilloskop, weil C mit der
+Temperatur fällt.</p>
+
+<table>
+  <tr><th style="width:18%">Gerät</th><th style="width:13%">Max. Ausgang</th><th style="width:12%">R2</th><th style="width:10%">f<sub>c</sub> bei 3,1 µF</th><th style="width:24%">Vor- und Nachteile</th><th>Software</th></tr>
+  <tr><td class="dev">SR860 / SR865A SINE OUT</td><td>2 V rms, 2,8 V Spitze, 50 Ω</td><td>240 Ω</td><td>≈ 180 Hz</td>
+      <td><b>Erste Wahl.</b> Kleiner Maximalausgang heißt kleines R2, Ecke hoch. Kann auf 0 V</td><td><span class="tag t-ok">vorhanden</span> (SR860), <span class="tag t-plan">geplant</span> (SR865A)</td></tr>
+  <tr><td class="dev">SR830 SINE OUT</td><td>5 V rms, 7,1 V Spitze, 50 Ω</td><td>680 Ω</td><td>≈ 70 Hz</td>
+      <td>Sehr verbreitet. Größeres R2, Ecke niedrig. Mindestens 4 mV rms, also nie ganz aus</td><td><span class="tag t-plan">geplant</span></td></tr>
+  <tr><td class="dev">Signal Recovery 7265 / 7270</td><td>bis 5 V rms (prüfen)</td><td>wie SR830</td><td>≈ 70 Hz</td>
+      <td>Gute Lock-ins, eigener Befehlssatz</td><td><span class="tag t-plan">geplant</span></td></tr>
+  <tr><td class="dev">Funktionsgenerator 33500B / 33600A</td><td>10 V Spitze an hochohmig, 50 Ω</td><td>mit Spannungsgrenze 3 V: 250 Ω</td><td>≈ 170 Hz</td>
+      <td>Hat eine einstellbare <b>Ausgangsgrenze</b> (Voltage Limit), damit kleines R2. Lock-in läuft auf externer Referenz</td><td><span class="tag t-plan">geplant</span></td></tr>
+  <tr><td class="dev">33210A / 33220A</td><td>10 V Spitze an hochohmig</td><td>950 Ω ohne Grenze</td><td>≈ 50 Hz</td>
+      <td>Billig und verbreitet. Ohne Grenze großes R2</td><td><span class="tag t-plan">geplant</span></td></tr>
+  <tr><td class="dev">Tegam 2350 hinter dem Lock-in</td><td>±200 V, 40 mA, fest ×50</td><td>≥ 20 kΩ</td><td>≈ 2,6 Hz</td>
+      <td>Für NiMnSn zu viel. Wegen ×50 wird jedes mV am Eingang 50 mV am Stapel. Nur für große Amplituden oder Pulse</td><td><span class="tag t-ok">vorhanden</span> (über SR860)</td></tr>
+  <tr><td class="dev">Zurich MFLI</td><td>±10 V</td><td>950 Ω</td><td>≈ 50 Hz</td>
+      <td>Sehr gutes Gerät. Läuft über die zhinst-Python-API, die ich ohne Gerät nicht sicher schreiben kann</td><td><span class="tag t-no">kein Treiber</span> vorerst</td></tr>
+</table>
+
+<div class="box warn">
+  <h4>Wenn dich die RC-Ecke stört</h4>
+  <p>Die Ecke liegt mitten im erwarteten Plateau (30 bis 200 Hz). Das ist kein Messfehler, solange die Spannung am Stapel bekannt ist.
+  Darum misst ein Oszilloskopkanal direkt am Stapel. Wer die Ecke loswerden will, macht R2 kleiner und begrenzt den
+  Generator in der Software. Dann schützt aber nur noch die Software die 10 mA.</p>
+</div>
+
+<!-- ============================ 4 LOCK-IN ============================ -->
+<h2 class="page">4 Thermospannung: Lock-in und Vorverstärker</h2>
+<p>Das Thermoelement liefert 50 nV bis 1 µV bei der Anregungsfrequenz. Der Lock-in misst Betrag und Phase relativ zu seinem
+Oszillator. Speichere immer X und Y einzeln, nicht nur R. Induktion durch den im Feld schwingenden Draht liegt in Quadratur.</p>
+
+<table>
+  <tr><th style="width:20%">Gerät</th><th style="width:16%">Eingangsrauschen</th><th style="width:36%">Vor- und Nachteile</th><th>Software</th></tr>
+  <tr><td class="dev">SR860 / SR865A</td><td>2,5 nV/√Hz</td><td>Bestes Rauschen der üblichen Geräte, eingebauter Oszillator, kann Anregung und Messung gleichzeitig</td><td><span class="tag t-ok">vorhanden</span> / <span class="tag t-plan">geplant</span></td></tr>
+  <tr><td class="dev">SR830</td><td>6 nV/√Hz</td><td>Steht fast überall. Mit SR560 davor gleich gut wie SR860</td><td><span class="tag t-plan">geplant</span></td></tr>
+  <tr><td class="dev">Signal Recovery 7265 / 7270</td><td>ähnlich SR830</td><td>Gute Geräte, eigener Befehlssatz</td><td><span class="tag t-plan">geplant</span></td></tr>
+  <tr><td class="dev">Zurich MFLI</td><td>2,5 nV/√Hz</td><td>Mehrere Demodulatoren. Kein Treiber, siehe Seite davor</td><td><span class="tag t-no">kein Treiber</span></td></tr>
+  <tr><td class="dev">Oszilloskop</td><td>Hunderte µV</td><td>Für das AC-Signal ungeeignet: 8 Bit, große Bandbreite. Nur mit langer Mittelung und Nachrechnung</td><td><span class="tag t-no">nicht für AC-ECE</span></td></tr>
+</table>
+
+<h3>Vorverstärker</h3>
+<table>
+  <tr><th style="width:20%">Gerät</th><th style="width:40%">Wofür</th><th>Achten auf</th></tr>
+  <tr><td class="dev">SR560</td><td>Standard. Differentiell A−B, Gain 100 bis 1000, Filter einstellbar, 4 nV/√Hz</td>
+      <td><b>Batteriebetrieb</b>, sonst Masseschleife. Eingang DC-gekoppelt, Filter Bandpass um die Messfrequenz. Gain in <span class="mono">preamp_gain</span> eintragen</td></tr>
+  <tr><td class="dev">SR554 (Transformator)</td><td>Sehr rauscharm bei niederohmigen Quellen wie einem Thermoelement</td>
+      <td>Untere Frequenzgrenze und Verstärkung im Handbuch prüfen, bei tiefen Frequenzen schwächer</td></tr>
+  <tr><td class="dev">Ohne Vorverstärker</td><td>Geht mit SR860 direkt, A−B-Eingang, Float</td>
+      <td>Empfindlicher für Masseprobleme. Für den Anfang SR560 nehmen</td></tr>
+</table>
+
+<h3>Thermoelement</h3>
+<ul>
+  <li><b>Type E (Chromel/Konstantan)</b>, 12,5 oder 25 µm. Größte Thermokraft der üblichen Typen, 61 µV/K bei 300 K, rund 40 µV/K bei 100 K.</li>
+  <li><b>Differentiell</b>: eine Lötstelle auf der Probe, die zweite auf der Thermal Link Plate. Dann misst du nur ΔT der Probe.</li>
+  <li>Dünner Draht hält das Plateau breit. 50 µm haben mehr Wärmekapazität und verschieben die obere Grenze nach unten.</li>
+  <li><b>Kontrollthermoelement</b> auf die Kontaktpads der Zelle (wie bei Ikeda): zeigt Einkopplung ohne Probe.</li>
+  <li>Die Thermokraft ändert sich im Magnetfeld: je Feldwert relativ auswerten oder kalibrieren.</li>
+</ul>
+
+<!-- ============================ 5 KRAFT ============================ -->
+<h2 class="page">5 Kraft: Kapazitätsmessung</h2>
+<p>Der Kraftsensor ist ein Kondensator mit 1,1 pF, der sich um 0,5 fF/N ändert. Die Grenze des Sensors liegt bei
+6 mN/√Hz, also 3 aF/√Hz. Die Software rechnet mit der Kalibrierdatei der Zelle in Newton um und zieht den Nullpunkt ab.</p>
+
+<table>
+  <tr><th style="width:17%">Gerät</th><th style="width:16%">Frequenz</th><th style="width:30%">Vorteile</th><th style="width:25%">Nachteile</th><th>Software</th></tr>
+  <tr><td class="dev">AH2700A</td><td>50 Hz bis 20 kHz</td><td><b>Genaueste Wahl</b>, 0,8 aF Auflösung (rechnerisch 1,6 mN). Messfrequenz verschiebbar, weg von der ECE-Frequenz</td><td>Langsam, ab 0,4 s je Messung, teuer</td><td><span class="tag t-ok">vorhanden</span></td></tr>
+  <tr><td class="dev">AH2550A</td><td>1 kHz fest</td><td>Laut Razorbill die Wahl für höhere Präzision</td><td>Nur 1 kHz. Befehlssatz als gleich zum 2500A angenommen: prüfen</td><td><span class="tag t-ok">vorhanden</span></td></tr>
+  <tr><td class="dev">AH2500A</td><td>1 kHz fest</td><td>Älter, in manchen Laboren noch im Schrank</td><td>Wie 2550A</td><td><span class="tag t-plan">geplant</span></td></tr>
+  <tr><td class="dev">Keysight E4980A / E4980AL</td><td>20 Hz bis 2 MHz (AL: bis 1 MHz)</td><td>Von Razorbill empfohlen, schnell genug für den Kraftregler</td><td>Bei 1 pF weniger genau als eine Brücke</td><td><span class="tag t-ok">vorhanden</span> (AL), <span class="tag t-plan">geplant</span> (A)</td></tr>
+  <tr><td class="dev">HP / Agilent 4284A</td><td>20 Hz bis 1 MHz</td><td>Vorgänger des E4980A, gleicher Befehlssatz, oft noch im Labor</td><td>Alt, GPIB nötig</td><td><span class="tag t-plan">geplant</span></td></tr>
+  <tr><td class="dev">Lock-in mit Stromeingang</td><td>frei</td><td>Steht oft herum</td><td>Bei 1 V und 1 kHz nur 6,9 nA Signalstrom. Reicht für etwa 0,1 N, nicht für die Sensorgrenze. Braucht einen <b>zweiten</b> Lock-in</td><td><span class="tag t-plan">geplant</span></td></tr>
+</table>
+
+<div class="box">
+  <h4>AC-Kraft: kommt nicht aus dem Messgerät</h4>
+  <p>Alle Geräte oben messen höchstens wenige Male pro Sekunde. Die Kraftschwingung bei 20 bis 200 Hz sehen sie nicht.
+  Die AC-Kraft rechnet die Software aus: <span class="formula">F<sub>ac</sub> = G · D<sub>ac</sub></span>.
+  G = dF/dD misst der Kraftregler quasistatisch nebenbei, D<sub>ac</sub> ist die Spannung am Stapel nach der RC-Korrektur
+  bzw. vom Oszilloskop. So macht es auch Ikeda.</p>
+</div>
+
+<div class="box warn">
+  <h4>Übersprechen bei 1 kHz</h4>
+  <p>Die Brücke regt den Sensor mit bis zu 15 V bei 1 kHz an. Das koppelt in die Thermoelementdrähte ein. Lege die
+  ECE-Frequenz nicht nahe 1 kHz/n (1000, 500, 333, 250 Hz). Die Software soll solche Frequenzen nur mit Bestätigung zulassen
+  (<span class="tag t-plan">geplant</span>). Mit dem AH2700A kannst du stattdessen die Brückenfrequenz verschieben.</p>
+</div>
+
+<h3>Anschluss des Kraftsensors</h3>
+<ul>
+  <li>Koax mit <b>gelbem Band an High</b>, <b>schwarzem Band an Low</b>.</li>
+  <li>Beim E4980A und 4284A (vier BNC): am Kabelende Hcur mit Hpot und Lcur mit Lpot verbinden, alle vier Schirme miteinander.</li>
+  <li>Die Schirme dürfen weder einander außerhalb dieses Punkts noch den Kryostaten berühren, sonst springt die Kapazität (AP003, AP006).</li>
+  <li>Das Zellgehäuse bekommt einen eigenen Draht zur Kryostatmasse.</li>
+  <li>Messspannung höchstens 14 V rms (Datenblatt: 40 V Spitze-Spitze). Einen Tag pumpen, bevor du dem Nullpunkt traust.</li>
+</ul>
+
+<!-- ============================ 6 OSZI ============================ -->
+<h2 class="page">6 Oszilloskop, Nanovoltmeter, DMM</h2>
+
+<div class="grid2">
+  <div class="card">
+    <h4>Oszilloskop <span class="tag t-plan">geplant</span></h4>
+    <p><b>Wofür ja:</b></p>
+    <ul>
+      <li>Spannung am Zugstapel hinter R2: Amplitude und Phase gegen SINE OUT. Das ist die Zahl für F<sub>ac</sub> und für die Phasenkorrektur.</li>
+      <li>Kurvenform prüfen: Clipping, Verzerrung, ungewollter DC-Offset.</li>
+      <li>Laden und Entladen: T(t) hinter dem SR560 (1 K ≈ 60 µV, ×1000 = 60 mV) mit ms-Auflösung.</li>
+      <li>Verstärkung der Kette messen (<span class="mono">gain_verified</span>).</li>
+    </ul>
+    <p><b>Wofür nein:</b> das AC-Elastokalorik-Signal (unter 1 µV).</p>
+    <p class="small">Der Treiber hängt vom Hersteller ab (Keysight, Tektronix, Rigol, R&amp;S). Ich brauche dein Modell.</p>
+  </div>
+  <div class="card">
+    <h4>Keithley 2182A Nanovoltmeter <span class="tag t-plan">geplant</span></h4>
+    <p><b>Wofür:</b> volles ΔT<sub>ad</sub> beim Laden und Entladen, wenn es genau sein soll und Zeitkonstanten über etwa 50 ms reichen.</p>
+    <ul>
+      <li>Sehr kleines Rauschen bei DC, misst direkt am Thermoelement ohne Vorverstärker.</li>
+      <li>Langsamer als ein Oszilloskop. Bei kurzer Integrationszeit steigt das Rauschen.</li>
+      <li>Kanal 1 an das Thermoelement, Kanal 2 frei.</li>
+    </ul>
+    <h4 style="margin-top:6pt">DMM 34401A / 34461A / 34465A <span class="tag t-plan">geplant</span></h4>
+    <p>Ersatz für den 2182A, wenn ΔT<sub>ad</sub> im K-Bereich liegt. Für mK zu verrauscht.</p>
+  </div>
+</div>
+
+<div class="box bad">
+  <h4>Achtung Masse des Tastkopfs</h4>
+  <p>Die Masseklemme eines normalen Tastkopfs liegt auf Schutzerde. Klemm sie nur an den Schirm des Lock-in-Ausgangs
+  (Minuspol des Zugstapels). <b>Nie an die Keithley-Seite</b>: liegt dort Hochspannung gegen Erde an, schließt der Tastkopf sie kurz.
+  Für Messungen am Druckstapel nur mit Differenztastkopf (für mindestens 500 V).</p>
+</div>
+
+<!-- ============================ 7 AUFBAUTEN ============================ -->
+<h2>7 Fertige Aufbauten</h2>
+<p>Je nachdem, was im Schrank steht. A ist die Empfehlung.</p>
+
+<table>
+  <tr><th style="width:14%"></th><th style="width:29%">A: Standard (empfohlen)</th><th style="width:29%">B: alles SR830</th><th>C: wie in den Papern</th></tr>
+  <tr><td class="dev">DC Druck</td><td>Keithley 2400 + R1</td><td>Keithley 2400 + R1</td><td>SR860-Aux → HV-Verstärker</td></tr>
+  <tr><td class="dev">AC Zug</td><td>SR860 SINE OUT + R2 (240 Ω)</td><td>SR830 Nr. 1 SINE OUT + R2 (680 Ω)</td><td>SR860 SINE OUT → Tegam 2350</td></tr>
+  <tr><td class="dev">ECE-Signal</td><td>SR560 → SR860</td><td>SR560 → SR830 Nr. 1</td><td>SR560 → SR860</td></tr>
+  <tr><td class="dev">Kraft</td><td>AH2700A oder E4980A</td><td>E4980A / 4284A oder SR830 Nr. 2</td><td>AH-Brücke</td></tr>
+  <tr><td class="dev">Kontrolle</td><td>Oszilloskop, 2182A</td><td>Oszilloskop</td><td>Oszilloskop</td></tr>
+  <tr><td class="dev">Gut für</td><td>NiMnSn, AC und langsames Laden</td><td>Labor ohne SR860</td><td>Große Amplituden, Pulse</td></tr>
+  <tr><td class="dev">Schwäche</td><td>RC-Ecke um 180 Hz</td><td>RC-Ecke um 70 Hz, SR830 nie ganz aus</td><td>Keine Strommessung, 40 mA möglich, Box und Bleeder Pflicht</td></tr>
+</table>
+
+<!-- ============================ 8 SCHALTBILDER ============================ -->
+<h2 class="page">8 Schaltbilder (Aufbau A)</h2>
+
+<figure>
+<svg viewBox="0 0 740 300" width="100%">
+  <style>
+    .b { fill: #f3f5f8; stroke: #1b1f24; stroke-width: 1.2; }
+    .bh { fill: #fcf1f0; stroke: #c0392b; stroke-width: 1.4; }
+    .t { font-size: 11px; font-weight: 600; fill: #1b1f24; }
+    .s { font-size: 9px; fill: #5a6370; }
+    .w { stroke: #5a6370; stroke-width: 1.2; fill: none; }
+    .hv { stroke: #c0392b; stroke-width: 2; fill: none; }
+    .sig { stroke: #1f5fa8; stroke-width: 1.6; fill: none; }
+    .cap { stroke: #1e7a46; stroke-width: 1.6; fill: none; }
+  </style>
+  <rect class="b" x="10" y="20" width="120" height="54" rx="5"/>
+  <text class="t" x="70" y="43" text-anchor="middle">Messrechner</text>
+  <text class="s" x="70" y="58" text-anchor="middle">StressCell, Port 8020</text>
+  <rect class="b" x="10" y="226" width="120" height="54" rx="5"/>
+  <text class="t" x="70" y="249" text-anchor="middle">MultiVu-Rechner</text>
+  <text class="s" x="70" y="264" text-anchor="middle">MultiPyVu, Port 27183</text>
+  <path class="w" d="M70 74 V226" stroke-dasharray="4 3"/>
+  <text class="s" x="76" y="150">Ethernet</text>
+  <path class="w" d="M130 47 H170 M170 40 V256"/>
+  <text class="s" x="134" y="40">GPIB/USB</text>
+  <path class="w" d="M170 40 H200 M170 94 H200 M170 148 H200 M170 202 H200 M170 256 H200"/>
+  <rect class="b" x="200" y="20" width="130" height="40" rx="4"/>
+  <text class="t" x="265" y="38" text-anchor="middle">Keithley 2400</text>
+  <text class="s" x="265" y="52" text-anchor="middle">DC Druckstapel</text>
+  <rect class="b" x="200" y="74" width="130" height="40" rx="4"/>
+  <text class="t" x="265" y="92" text-anchor="middle">SR860 Lock-in</text>
+  <text class="s" x="265" y="106" text-anchor="middle">SINE OUT + Eingang A</text>
+  <rect class="b" x="200" y="128" width="130" height="40" rx="4"/>
+  <text class="t" x="265" y="146" text-anchor="middle">SR560</text>
+  <text class="s" x="265" y="160" text-anchor="middle">Batterie, A−B, ×100 bis 1000</text>
+  <path class="sig" d="M265 128 V114"/>
+  <rect class="b" x="200" y="182" width="130" height="40" rx="4"/>
+  <text class="t" x="265" y="200" text-anchor="middle">AH2700A / E4980A</text>
+  <text class="s" x="265" y="214" text-anchor="middle">Kraftsensor</text>
+  <rect class="b" x="200" y="236" width="130" height="40" rx="4"/>
+  <text class="t" x="265" y="254" text-anchor="middle">Oszilloskop</text>
+  <text class="s" x="265" y="268" text-anchor="middle">V am Stapel, T(t)</text>
+  <rect class="bh" x="390" y="20" width="130" height="100" rx="5"/>
+  <text class="t" x="455" y="42" text-anchor="middle">Anschlussbox</text>
+  <text class="s" x="455" y="58" text-anchor="middle">R1 15 kΩ, R2 240 Ω</text>
+  <text class="s" x="455" y="71" text-anchor="middle">R3, R4 1 MΩ Bleeder</text>
+  <text class="s" x="455" y="84" text-anchor="middle">Sternpunkt Masse</text>
+  <path class="hv" d="M330 40 H390"/><text class="s" x="338" y="34">HV DC</text>
+  <path class="sig" d="M330 88 H390"/><text class="s" x="338" y="82">AC</text>
+  <path class="w" d="M330 256 H455 V120"/><text class="s" x="338" y="250">Tastkopf am Zugstapel</text>
+  <rect class="b" x="570" y="20" width="160" height="260" rx="6"/>
+  <text class="t" x="650" y="40" text-anchor="middle">PPMS-Probe</text>
+  <text class="s" x="650" y="54" text-anchor="middle">P450-Umbau oder CRYOINSERT</text>
+  <rect class="bh" x="585" y="66" width="130" height="44" rx="4"/>
+  <text class="t" x="650" y="84" text-anchor="middle">HV-Adern</text>
+  <text class="s" x="650" y="99" text-anchor="middle">rot/weiß und braun/blau</text>
+  <rect class="b" x="585" y="126" width="130" height="44" rx="4"/>
+  <text class="t" x="650" y="144" text-anchor="middle">Puck-Pins</text>
+  <text class="s" x="650" y="159" text-anchor="middle">Thermoelement</text>
+  <rect class="b" x="585" y="180" width="130" height="44" rx="4"/>
+  <text class="t" x="650" y="198" text-anchor="middle">Koax-Paar</text>
+  <text class="s" x="650" y="213" text-anchor="middle">gelb High, schwarz Low</text>
+  <rect class="b" x="585" y="236" width="130" height="32" rx="4"/>
+  <text class="t" x="650" y="256" text-anchor="middle">FC100 + Probe</text>
+  <path class="hv" d="M520 70 H585"/>
+  <path class="sig" d="M330 148 H585"/>
+  <path class="cap" d="M330 202 H585"/>
+</svg>
+<figcaption>Bild 1: Übersicht. Rot: Hochspannung. Blau: AC-Anregung und Thermospannung. Grün: Kraftsensor. Gestrichelt: Netzwerk.</figcaption>
+</figure>
+
+<figure>
+<svg viewBox="0 0 720 330" width="100%">
+  <style>
+    .w { stroke: #1b1f24; stroke-width: 1.4; fill: none; }
+    .hv { stroke: #c0392b; stroke-width: 2; fill: none; }
+    .ac { stroke: #1f5fa8; stroke-width: 2; fill: none; }
+    .r { fill: #fff; stroke: #1b1f24; stroke-width: 1.4; }
+    .dev { fill: #f3f5f8; stroke: #1b1f24; stroke-width: 1.2; }
+    .stk { fill: #fff7e6; stroke: #a3620a; stroke-width: 1.4; }
+    .t { font-size: 11px; font-weight: 600; fill: #1b1f24; }
+    .s { font-size: 9.5px; fill: #5a6370; }
+    .boxl { fill: none; stroke: #c0392b; stroke-dasharray: 6 4; stroke-width: 1.2; }
+  </style>
+  <rect class="boxl" x="150" y="8" width="330" height="314" rx="6"/>
+  <text class="s" x="160" y="22">Anschlussbox, Metallgehäuse, geerdet</text>
+
+  <!-- Keithley -->
+  <rect class="dev" x="10" y="40" width="110" height="90" rx="4"/>
+  <text class="t" x="65" y="62" text-anchor="middle">Keithley 2400</text>
+  <text class="s" x="65" y="76" text-anchor="middle">200-V-Bereich</text>
+  <text class="s" x="65" y="89" text-anchor="middle">Compliance 6 mA</text>
+  <text class="s" x="134" y="49" text-anchor="middle">HI</text>
+  <text class="s" x="112" y="124" text-anchor="end">LO</text>
+  <path class="hv" d="M120 54 H200"/>
+  <rect class="r" x="200" y="46" width="60" height="16"/>
+  <text class="s" x="230" y="42" text-anchor="middle">R1 15 kΩ</text>
+  <path class="hv" d="M260 54 H560"/>
+  <path class="w" d="M120 120 H560"/>
+  <!-- bleeder R3 -->
+  <path class="w" d="M360 54 V68"/>
+  <rect class="r" x="352" y="68" width="16" height="36"/>
+  <path class="w" d="M360 104 V120"/>
+  <text class="s" x="374" y="90">R3 1 MΩ</text>
+  <circle cx="360" cy="54" r="2.5" fill="#1b1f24"/><circle cx="360" cy="120" r="2.5" fill="#1b1f24"/>
+  <!-- stack C -->
+  <rect class="stk" x="560" y="40" width="150" height="94" rx="4"/>
+  <text class="t" x="635" y="62" text-anchor="middle">Druckstapel</text>
+  <text class="s" x="635" y="76" text-anchor="middle">6,2 µF bei 300 K</text>
+  <text class="s" x="635" y="90" text-anchor="middle">Adern braun / blau</text>
+  <text class="s" x="635" y="104" text-anchor="middle">Polarität nach Quickstart</text>
+
+  <!-- Lock-in -->
+  <rect class="dev" x="10" y="180" width="110" height="90" rx="4"/>
+  <text class="t" x="65" y="202" text-anchor="middle">SR860</text>
+  <text class="s" x="65" y="216" text-anchor="middle">SINE OUT, 50 Ω</text>
+  <text class="s" x="65" y="229" text-anchor="middle">höchstens 2 V rms</text>
+  <text class="s" x="112" y="198" text-anchor="end">Mitte</text>
+  <text class="s" x="112" y="264" text-anchor="end">Schirm</text>
+  <path class="ac" d="M120 194 H200"/>
+  <rect class="r" x="200" y="186" width="60" height="16"/>
+  <text class="s" x="230" y="182" text-anchor="middle">R2 240 Ω</text>
+  <path class="ac" d="M260 194 H560"/>
+  <path class="w" d="M120 260 H560"/>
+  <path class="w" d="M360 194 V208"/>
+  <rect class="r" x="352" y="208" width="16" height="36"/>
+  <path class="w" d="M360 244 V260"/>
+  <text class="s" x="374" y="230">R4 1 MΩ</text>
+  <circle cx="360" cy="194" r="2.5" fill="#1b1f24"/><circle cx="360" cy="260" r="2.5" fill="#1b1f24"/>
+  <rect class="stk" x="560" y="180" width="150" height="94" rx="4"/>
+  <text class="t" x="635" y="202" text-anchor="middle">Zugstapel</text>
+  <text class="s" x="635" y="216" text-anchor="middle">3,1 µF bei 300 K</text>
+  <text class="s" x="635" y="230" text-anchor="middle">Adern rot / weiß</text>
+  <text class="s" x="635" y="244" text-anchor="middle">Polarität nach Quickstart</text>
+
+  <!-- scope probe -->
+  <path class="w" d="M440 194 V160 H470" stroke-dasharray="3 2"/>
+  <text class="s" x="474" y="163">Oszi CH1 (Tastkopf 10:1)</text>
+  <path class="w" d="M440 260 V290 H470" stroke-dasharray="3 2"/>
+  <text class="s" x="474" y="293">Oszi-Masse nur hier</text>
+  <circle cx="440" cy="194" r="2.5" fill="#1b1f24"/><circle cx="440" cy="260" r="2.5" fill="#1b1f24"/>
+  <!-- star ground -->
+  <path class="w" d="M300 120 V150 M300 260 V150 M300 150 H250"/>
+  <circle cx="300" cy="150" r="3.5" fill="#1b1f24"/>
+  <text class="s" x="246" y="146" text-anchor="end">Sternpunkt</text>
+  <text class="s" x="246" y="158" text-anchor="end">→ Kryostatmasse</text>
+</svg>
+<figcaption>Bild 2: Anschlussbox. R1 und R3 auf der DC-Seite, R2 und R4 auf der AC-Seite. AC und DC treffen sich nirgends, auch nicht über ein BNC-T. Das Oszilloskop misst die Spannung direkt am Zugstapel.</figcaption>
+</figure>
+
+<div class="box warn">
+  <h4>Masse und Sternpunkt</h4>
+  <p>Keithley-LO und Lock-in-Schirm treffen sich in der Box an einem Punkt, und von dort führt ein Draht zur Kryostatmasse.
+  Ob dein Keithley LO am Gerät zusätzlich mit dem Gehäuse verbunden ist (Brücke an der Rückseite), prüfst du vorher. Zwei Erdpunkte bilden eine Masseschleife,
+  und die sieht der Lock-in als Störung bei 50 Hz und ihren Oberwellen.</p>
+</div>
+
+<figure class="page">
+<svg viewBox="0 0 720 250" width="100%">
+  <style>
+    .w { stroke: #1b1f24; stroke-width: 1.4; fill: none; }
+    .ch { stroke: #a3620a; stroke-width: 2; fill: none; }
+    .co { stroke: #1f5fa8; stroke-width: 2; fill: none; }
+    .dev { fill: #f3f5f8; stroke: #1b1f24; stroke-width: 1.2; }
+    .smp { fill: #e7eef8; stroke: #1f5fa8; stroke-width: 1.2; }
+    .t { font-size: 11px; font-weight: 600; fill: #1b1f24; }
+    .s { font-size: 9.5px; fill: #5a6370; }
+  </style>
+  <rect class="smp" x="20" y="30" width="200" height="60" rx="4"/>
+  <text class="t" x="120" y="52" text-anchor="middle">Probe NiMnSn</text>
+  <text class="s" x="120" y="66" text-anchor="middle">Lötstelle 1 mit GE-Lack / Epoxid</text>
+  <circle cx="120" cy="82" r="4" fill="#1b1f24"/>
+  <rect class="dev" x="20" y="150" width="200" height="60" rx="4"/>
+  <text class="t" x="120" y="172" text-anchor="middle">Thermal Link Plate</text>
+  <text class="s" x="120" y="186" text-anchor="middle">Lötstelle 2, Referenz</text>
+  <circle cx="120" cy="158" r="4" fill="#1b1f24"/>
+  <path class="co" d="M120 86 V154"/>
+  <text class="s" x="126" y="124">Konstantan</text>
+  <path class="ch" d="M116 82 H40 V110 H300"/>
+  <path class="ch" d="M116 158 H60 V130 H300"/>
+  <text class="s" x="230" y="104">Chromel</text>
+  <text class="s" x="230" y="144">Chromel</text>
+  <rect class="dev" x="300" y="96" width="90" height="48" rx="4"/>
+  <text class="t" x="345" y="116" text-anchor="middle">Puck-Pins</text>
+  <text class="s" x="345" y="130" text-anchor="middle">gleiche Temperatur</text>
+  <path class="w" d="M390 110 H440 M390 130 H440"/>
+  <text class="s" x="394" y="104">Cu, verdrillt</text>
+  <rect class="dev" x="440" y="86" width="110" height="68" rx="4"/>
+  <text class="t" x="495" y="106" text-anchor="middle">SR560</text>
+  <text class="s" x="495" y="120" text-anchor="middle">A und B, Batterie</text>
+  <text class="s" x="495" y="133" text-anchor="middle">Gain 100 bis 1000</text>
+  <text class="s" x="495" y="146" text-anchor="middle">Bandpass um f</text>
+  <path class="w" d="M550 120 H600"/>
+  <rect class="dev" x="600" y="96" width="110" height="48" rx="4"/>
+  <text class="t" x="655" y="116" text-anchor="middle">SR860 Eingang A</text>
+  <text class="s" x="655" y="130" text-anchor="middle">Ref = eigener Oszillator</text>
+  <path class="w" d="M495 154 V200 H600" stroke-dasharray="4 3"/>
+  <rect class="dev" x="600" y="180" width="110" height="44" rx="4"/>
+  <text class="t" x="655" y="198" text-anchor="middle">2182A / Oszi</text>
+  <text class="s" x="655" y="212" text-anchor="middle">Laden und Entladen</text>
+  <text class="s" x="505" y="196">alternativ</text>
+</svg>
+<figcaption>Bild 3: Differentielles Thermoelement. Das Signal entsteht nur zwischen Lötstelle 1 und 2. Die Übergänge Chromel auf Kupfer am Puck heben sich auf, solange beide Pins gleich warm sind.</figcaption>
+</figure>
+
+<figure>
+<svg viewBox="0 0 720 200" width="100%">
+  <style>
+    .w { stroke: #1b1f24; stroke-width: 1.4; fill: none; }
+    .sh { stroke: #1e7a46; stroke-width: 1.4; fill: none; stroke-dasharray: 5 3; }
+    .dev { fill: #f3f5f8; stroke: #1b1f24; stroke-width: 1.2; }
+    .t { font-size: 11px; font-weight: 600; fill: #1b1f24; }
+    .s { font-size: 9.5px; fill: #5a6370; }
+  </style>
+  <rect class="dev" x="10" y="20" width="130" height="160" rx="4"/>
+  <text class="t" x="75" y="42" text-anchor="middle">E4980A / 4284A</text>
+  <text class="s" x="132" y="66" text-anchor="end">Hcur</text>
+  <text class="s" x="132" y="96" text-anchor="end">Hpot</text>
+  <text class="s" x="132" y="126" text-anchor="end">Lpot</text>
+  <text class="s" x="132" y="156" text-anchor="end">Lcur</text>
+  <path class="w" d="M140 62 H300 V77 M140 92 H300 V77"/>
+  <path class="w" d="M140 122 H300 V137 M140 152 H300 V137"/>
+  <path class="sh" d="M140 70 H280 V100 H140 M140 130 H280 V160 H140 M280 100 V130"/>
+  <text class="s" x="160" y="114">Schirme am Kabelende verbunden</text>
+  <path class="w" d="M300 77 H460"/>
+  <path class="w" d="M300 137 H460"/>
+  <text class="s" x="320" y="70">Koax gelbes Band: High</text>
+  <text class="s" x="320" y="130">Koax schwarzes Band: Low</text>
+  <rect class="dev" x="460" y="50" width="150" height="110" rx="4"/>
+  <text class="t" x="535" y="72" text-anchor="middle">Kraftsensor FC100</text>
+  <text class="s" x="535" y="88" text-anchor="middle">1,1 pF, 0,5 fF/N</text>
+  <text class="s" x="535" y="104" text-anchor="middle">Schirme nicht an den</text>
+  <text class="s" x="535" y="117" text-anchor="middle">Kryostaten</text>
+  <path class="w" d="M610 140 H660 V175"/>
+  <path class="w" d="M645 175 H675 M650 180 H670 M655 185 H665"/>
+  <text class="s" x="616" y="134">Gehäuse: eigener Draht zur Masse</text>
+</svg>
+<figcaption>Bild 4: Kraftsensor am LCR-Meter mit vier BNC-Buchsen. Die AH-Brücke hat zwei Anschlüsse (High und Low), dort direkt.</figcaption>
+</figure>
+
+<!-- ============================ 9 BOX ============================ -->
+<h2>9 Anschlussbox: Bauteilliste</h2>
+<table>
+  <tr><th style="width:13%">Teil</th><th style="width:22%">Wert</th><th style="width:28%">Bemessung</th><th>Warum</th></tr>
+  <tr><td class="dev">R1</td><td>15 kΩ (14,7 kΩ geht)</td><td>≥ 500 V Spannungsfestigkeit, 1 W</td><td>Strombegrenzung, entkoppelt die SMU vom Stapel wie im RP100. Bei 120 V höchstens 8 mA</td></tr>
+  <tr><td class="dev">R2</td><td>SR860: 240 Ω, SR830: 680 Ω, Generator: nach Formel</td><td>0,5 W reicht</td><td>Hält 10 mA auch bei voll aufgedrehtem Ausgang</td></tr>
+  <tr><td class="dev">R3, R4</td><td>1 MΩ</td><td>≥ 500 V Spannungsfestigkeit (Hochspannungstyp), 0,5 W</td><td>Stapel nie offen. τ = 6 s am Druckstapel. Mit Razorbill abklären</td></tr>
+  <tr><td class="dev">Gehäuse</td><td>Metall, geerdet</td><td>Deckel verschraubt</td><td>Berührschutz, Abschirmung</td></tr>
+  <tr><td class="dev">Buchsen</td><td>DC-Seite: SHV oder isolierte BNC. AC-Seite: BNC</td><td>SHV ist gegen Verwechseln sicher</td><td>BNC ist meist bis 500 V spezifiziert. SHV passt nicht in normale BNC, das verhindert Fehlstecken</td></tr>
+  <tr><td class="dev">Ersatzstapel</td><td>3,3 µF Folienkondensator</td><td>≥ 400 V</td><td>Alles einmal ohne Zelle testen</td></tr>
+</table>
+
+<!-- ============================ 10 FREQUENZ ============================ -->
+<h2 class="page">10 Frequenz wählen</h2>
+<p>Die Frequenz kommt aus einem Sweep. Das <b>Maximum allein reicht nicht</b>. Du suchst ein Plateau:</p>
+<table>
+  <tr><th style="width:20%">Bereich</th><th style="width:40%">Was passiert</th><th>Was du siehst</th></tr>
+  <tr><td class="dev">zu niedrig</td><td>Wärme fließt während einer Periode über die Enden ab</td><td>Amplitude fällt, Phase läuft vor</td></tr>
+  <tr><td class="dev">Plateau</td><td>adiabatisch: die Probe tauscht in einer Periode keine Wärme aus</td><td>Amplitude <b>flach</b>, Phase gegen die Dehnung bei 0° oder 180°</td></tr>
+  <tr><td class="dev">zu hoch</td><td>Thermoelement und Kleber folgen nicht mehr</td><td>Amplitude fällt, Phase läuft nach</td></tr>
+</table>
+<div class="box">
+  <h4>Phase gegen die Dehnung, nicht gegen die Referenz</h4>
+  <p>Der Lock-in misst gegen seinen Oszillator. Zwischen Oszillator und Dehnung liegt der RC-Tiefpass aus R2 und Stapel:
+  <span class="formula">φ<sub>RC</sub> = −arctan(2π·f·R·C)</span>. Ziehst du das nicht ab, liegt dein "Plateau" an der falschen Stelle.
+  Das Oszilloskop am Stapel liefert die echte Phase.</p>
+</div>
+<ul>
+  <li>Erwartung für NiMnSn mit 1-mm-Probe: Wärmeabfluss in etwa 25 ms. Plateau grob 30 bis 200 Hz. Mit 12,5-µm-Draht nach oben breiter.</li>
+  <li>Ist das Plateau sehr schmal, ist das Maximum ein Buckel unter dem adiabatischen Wert. Dann dünneren Draht, längere Probe oder Hochvakuum.</li>
+  <li><b>Hochvakuum</b> ist Pflicht: Austauschgas ist ein zusätzlicher Wärmeabfluss und senkt das Plateau.</li>
+  <li>Jeden Punkt bei zwei Frequenzen messen. Induktion wächst mit f und B, das echte Signal auf dem Plateau nicht.</li>
+  <li>Bei Verwendung einer AH-Brücke: nicht nahe 1000, 500, 333 oder 250 Hz.</li>
+  <li>Am martensitischen Übergang siehst du mit kleiner Amplitude den <b>reversiblen</b> Anteil, nicht das volle ΔT<sub>ad</sub>. Dafür Laden und Entladen mit 2182A oder Oszilloskop.</li>
+</ul>
+
+<!-- ============================ 11 ABLAUF ============================ -->
+<h2>11 Ablauf im Labor</h2>
+<ol class="steps">
+  <li><b>Schrank prüfen</b> mit der Checkliste auf der letzten Seite. Aufbau A, B oder C wählen.</li>
+  <li><b>Anschlussbox bauen.</b> Widerstände mit dem DMM nachmessen, Isolation mit einem Isolationsmessgerät bei 500 V prüfen, falls vorhanden.</li>
+  <li><b>An den Ersatzkondensator</b> (3,3 µF) statt an die Zelle anschließen. Keithley auf ±5 V, dann ±20 V. Strom fließt nur während der Rampe. Ausgang aus: Spannung fällt über R3 mit τ = 6 s auf 0.</li>
+  <li><b>AC am Ersatzkondensator</b>: SINE OUT 0,1 V rms, Oszilloskop am Kondensator. Amplitude und Phase bei 20, 100, 200, 500 Hz notieren und mit der RC-Rechnung vergleichen.</li>
+  <li><b>Software</b>: in <span class="mono">config.toml</span> die Geräte eintragen, <span class="mono">simulate = false</span>, <span class="mono">read_only = true</span>. Dann <span class="mono">check_instruments.py</span> laufen lassen.</li>
+  <li><b>Zelle ohne Probe bei 300 K</b>: Polarität nach Razorbill-Quickstart prüfen (der LEMO-Stecker ist zwittrig, die Seite am Kryostaten ist umgekehrt gepolt). Kleine Spannungen, die Kraft muss nahe 0 bleiben.</li>
+  <li><b>Kalibrierdatei</b> vom Blatt der Zelle übertragen, Vorzeichen prüfen, <span class="mono">verified = true</span>.</li>
+  <li><b>Einen Tag pumpen</b>, dann den Nullpunkt messen.</li>
+  <li><b>Probe</b> mit Epoxid einkleben, Thermoelemente anbringen (Probe und Referenz, dazu das Kontrollthermoelement).</li>
+  <li><b><span class="mono">force_max_N</span></b> passend zur Probe setzen. NiMnSn ist spröde: nur auf Druck belasten, Kraft langsam steigern.</li>
+  <li><b>Hochvakuum</b>, dann mit höchstens 10 K/min abkühlen. <span class="mono">read_only = false</span>.</li>
+  <li><b>Frequenzsweep</b> (Sequenz <span class="mono">ece_find_plateau</span>), Plateau festlegen, dann Temperatursweeps je Feld (<span class="mono">ece_field_map</span>).</li>
+</ol>
+
+<!-- ============================ 12 FALLEN ============================ -->
+<h2>12 Fallen</h2>
+<table>
+  <tr><th style="width:24%">Falle</th><th style="width:30%">Folge</th><th>Gegenmittel</th></tr>
+  <tr><td class="dev">Aufwärmen unter Spannung</td><td>Bei 300 K zerstören Spannungen, die bei 4 K erlaubt sind, die Stapel</td><td>Software führt das Fenster nach. Unter 100 K nicht unbeaufsichtigt aufwärmen: stürzt der Rechner ab, hält die SMU ihre Spannung</td></tr>
+  <tr><td class="dev">Stapel offen</td><td>Pyroelektrische Spannung schädigt die Stapel</td><td>Bleeder R3, R4 fest verbaut. Box bleibt immer angesteckt</td></tr>
+  <tr><td class="dev">AC und DC per BNC-T</td><td>Die Ausgänge treiben sich gegenseitig</td><td>AC und DC auf getrennte Stapel, wie im Schaltbild</td></tr>
+  <tr><td class="dev">Oszi-Masse auf der DC-Seite</td><td>Kurzschluss über Schutzerde</td><td>Masseklemme nur am Lock-in-Schirm. Sonst Differenztastkopf</td></tr>
+  <tr><td class="dev">Niederdruck-Helium</td><td>Lichtbogen schon knapp über 100 V</td><td>Volles Fenster nur in HiVac. Software: ±80 V versiegelt, ±50 V beim Pumpen und Spülen</td></tr>
+  <tr><td class="dev">SMU im Auto-Bereich</td><td>Bereichswechsel kann am Stapel springen</td><td>200-V-Bereich fest einstellen</td></tr>
+  <tr><td class="dev">SMU-Ausgang aus auf High-Z</td><td>Stapel hängt nur noch am Bleeder</td><td>Ausgang-aus-Modus Normal oder Zero</td></tr>
+  <tr><td class="dev">SR830 "aus"</td><td>Es bleiben 4 mV rms am Stapel</td><td>Harmlos, aber bei Nullmessungen bedenken</td></tr>
+  <tr><td class="dev">Masseschleife</td><td>50-Hz-Störungen und Oberwellen im Lock-in</td><td>Sternpunkt in der Box, SR560 im Batteriebetrieb, A−B</td></tr>
+  <tr><td class="dev">ECE-Frequenz nahe 1 kHz/n mit AH-Brücke</td><td>Übersprechen der Brückenanregung</td><td>Andere Frequenz, oder Brückenfrequenz am AH2700A verschieben</td></tr>
+  <tr><td class="dev">Vorgeschichte</td><td>Wegen der Hysterese hängt jeder Punkt am Weg</td><td>Vor jedem Feldwert über den Übergang heizen</td></tr>
+  <tr><td class="dev">Feuchte</td><td>Sensor verschiebt sich, Isolation leidet</td><td>Einen Tag pumpen, nie mit Reif starten</td></tr>
+</table>
+
+<!-- ============================ 13 CHECKLISTE ============================ -->
+<h2 class="page">13 Schrank-Checkliste zum Abhaken</h2>
+<p class="small" style="margin-bottom:2pt">Ausdrucken, in den Schrank schauen, abhaken. Danach den Aufbau aus Abschnitt 7 wählen. Die Spalte Notiz ist für Inventarnummer, Adresse oder Zustand.</p>
+<table class="compact">
+  <tr><th class="chk">da</th><th style="width:28%">Gerät</th><th style="width:26%">wofür</th><th style="width:14%">Rang</th><th>Notiz</th></tr>
+  <tr><td colspan="5" style="background:#f3f5f8;font-weight:600">DC-Offset (Druckstapel)</td></tr>
+  <tr><td class="chk"><span></span></td><td>Keithley 2400 / 2410</td><td>DC</td><td>1. Wahl</td><td class="fill">..............................</td></tr>
+  <tr><td class="chk"><span></span></td><td>Keithley 2450</td><td>DC</td><td>1. Wahl</td><td class="fill">..............................</td></tr>
+  <tr><td class="chk"><span></span></td><td>Keysight B2901A / B2902A</td><td>DC, B2902A beide Stapel</td><td>1. Wahl</td><td class="fill">..............................</td></tr>
+  <tr><td class="chk"><span></span></td><td>Keithley 2612B / 2614B / 2634B</td><td>DC, beide Stapel</td><td>2. Wahl</td><td class="fill">..............................</td></tr>
+  <tr><td class="chk"><span></span></td><td>HV-Verstärker (Tegam 2350, PD200, Trek, Falco)</td><td>DC über Aux, Pulse</td><td>für Aufbau C</td><td class="fill">..............................</td></tr>
+  <tr><td colspan="5" style="background:#f3f5f8;font-weight:600">AC-Anregung und Lock-in</td></tr>
+  <tr><td class="chk"><span></span></td><td>SR860 / SR865A</td><td>AC und ECE-Signal</td><td>1. Wahl</td><td class="fill">..............................</td></tr>
+  <tr><td class="chk"><span></span></td><td>SR830 (Anzahl: ....)</td><td>AC und ECE-Signal</td><td>2. Wahl</td><td class="fill">..............................</td></tr>
+  <tr><td class="chk"><span></span></td><td>Signal Recovery 7265 / 7270</td><td>AC und ECE-Signal</td><td>2. Wahl</td><td class="fill">..............................</td></tr>
+  <tr><td class="chk"><span></span></td><td>Zurich MFLI</td><td>AC und ECE-Signal</td><td>kein Treiber</td><td class="fill">..............................</td></tr>
+  <tr><td class="chk"><span></span></td><td>Funktionsgenerator 33500B / 33600A / 33210A / 33220A</td><td>AC, Lock-in auf ext. Ref</td><td>Ersatz</td><td class="fill">..............................</td></tr>
+  <tr><td class="chk"><span></span></td><td>SR560 Vorverstärker</td><td>ECE-Signal</td><td>Pflicht</td><td class="fill">..............................</td></tr>
+  <tr><td class="chk"><span></span></td><td>SR554 Transformator-Vorverstärker</td><td>ECE-Signal, rauschärmer</td><td>optional</td><td class="fill">..............................</td></tr>
+  <tr><td colspan="5" style="background:#f3f5f8;font-weight:600">Kraft</td></tr>
+  <tr><td class="chk"><span></span></td><td>AH2700A</td><td>Kraft, genau</td><td>1. Wahl</td><td class="fill">..............................</td></tr>
+  <tr><td class="chk"><span></span></td><td>AH2550A / AH2500A</td><td>Kraft, genau, 1 kHz</td><td>1. Wahl</td><td class="fill">..............................</td></tr>
+  <tr><td class="chk"><span></span></td><td>Keysight E4980A / E4980AL</td><td>Kraft, schnell</td><td>2. Wahl</td><td class="fill">..............................</td></tr>
+  <tr><td class="chk"><span></span></td><td>HP / Agilent 4284A</td><td>Kraft, schnell</td><td>2. Wahl</td><td class="fill">..............................</td></tr>
+  <tr><td colspan="5" style="background:#f3f5f8;font-weight:600">Kontrolle und Laden/Entladen</td></tr>
+  <tr><td class="chk"><span></span></td><td>Oszilloskop (Modell: ..............)</td><td>V am Stapel, T(t)</td><td>Pflicht</td><td class="fill">..............................</td></tr>
+  <tr><td class="chk"><span></span></td><td>Differenztastkopf ≥ 500 V</td><td>Messung DC-Seite</td><td>optional</td><td class="fill">..............................</td></tr>
+  <tr><td class="chk"><span></span></td><td>Keithley 2182A</td><td>ΔT<sub>ad</sub> genau</td><td>1. Wahl</td><td class="fill">..............................</td></tr>
+  <tr><td class="chk"><span></span></td><td>DMM 34401A / 34461A / 34465A</td><td>ΔT<sub>ad</sub> grob</td><td>Ersatz</td><td class="fill">..............................</td></tr>
+  <tr><td colspan="5" style="background:#f3f5f8;font-weight:600">Kleinteile</td></tr>
+  <tr><td class="chk"><span></span></td><td>Type-E-Draht 12,5 oder 25 µm</td><td>Thermoelement</td><td>Pflicht</td><td class="fill">..............................</td></tr>
+  <tr><td class="chk"><span></span></td><td>Widerstände R1 bis R4, Metallgehäuse, SHV/BNC</td><td>Anschlussbox</td><td>Pflicht</td><td class="fill">..............................</td></tr>
+  <tr><td class="chk"><span></span></td><td>Folienkondensator 3,3 µF, ≥ 400 V</td><td>Ersatzstapel</td><td>Pflicht</td><td class="fill">..............................</td></tr>
+  <tr><td class="chk"><span></span></td><td>GPIB-USB-Adapter, Kabel</td><td>Rechner</td><td>Pflicht</td><td class="fill">..............................</td></tr>
+</table>
+
+<!-- ============================ 14 SOFTWARE ============================ -->
+<h2>14 Software: was vorhanden ist</h2>
+<p>Vorhanden und gegen nachgebaute Geräte getestet: RP100, Keithley 2400 als Paar, E4980AL, AH2550A, AH2700A, SR860 (Anregung und Messung),
+SR860-Aux mit Verstärker, PPMS über MultiPyVu, PPMS-Widerstandsbrücke. Nichts davon lief bisher an echter Hardware.</p>
+<p><b>Vorgeschlagen, noch nicht geschrieben:</b> eine eigene Quelle je Stapel in <span class="mono">config.toml</span>,
+Treiber für die mit <span class="tag t-plan">geplant</span> markierten Geräte, Bleeder-Korrektur der Strommessung,
+RC-Korrektur von Amplitude und Phase, Sperre um 1 kHz/n bei AH-Brücken, Oszilloskop als Monitor der Stapelspannung. Nach Freigabe
+und mit der Liste aus Abschnitt 13 werden die Geräte, die tatsächlich im Schrank stehen, zuerst und am gründlichsten umgesetzt.</p>
+
+<div class="box bad">
+  <h4>Ehrlicher Hinweis</h4>
+  <p>Die Zahlen zur Signalgröße sind Abschätzungen aus Datenblatt und Literatur, nicht gemessen. Die Bleeder-Lösung ist eine Ingenieursentscheidung,
+  keine Razorbill-Vorgabe. Die Angaben zu Geräten mit "prüfen" stammen aus dem Gedächtnis und gehören vor dem Einsatz mit dem Handbuch abgeglichen.</p>
+</div>
+
+</body>
+</html>
