@@ -19,8 +19,9 @@ def cfg(tmp_path):
     c["paths"].update(data_dir=str(tmp_path / "data"), log_dir=str(tmp_path / "logs"),
                       calibration_dir=str(tmp_path / "cal"), sequence_dir=str(tmp_path / "seq"))
     resolve_paths(c, tmp_path)
-    (c["paths"]["calibration_dir"] / "cell_example.toml").write_bytes(
-        (ROOT.parent / "calibrations" / "cell_example.toml").read_bytes())
+    for name in ("cell_example.toml", "FC100_0260.toml"):
+        (c["paths"]["calibration_dir"] / name).write_bytes((ROOT.parent / "calibrations" / name).read_bytes())
+    c["capacitance"]["calibration"] = "cell_example.toml"   # lineare Sim-Zelle, eigene Tests für #0260
     c["paths"]["config"] = tmp_path / "config.toml"
     c["limits"]["slew_default_V_s"] = 10.0      # Tests laufen sonst minutenlang durch die Rampen
     c["limits"]["sealed_V_max"] = 400.0         # eigener Test für die Vorgabe

@@ -1,4 +1,5 @@
-"""Grenzen der Razorbill FC100 aus dem Datenblatt (Version 2.4, Tabelle 2).
+"""Grenzen der Razorbill FC100 aus dem Datenblatt (Tabelle 2, gleich in Version 2.2 vom
+6. Juni 2023, die der Zelle #0260 beiliegt, und Version 2.4).
 
     T > 250 K        Vmin = -20 V                Vmax = +120 V
     100 K ... 250 K  Vmin = -50 + (T-100)/5      Vmax = +120 V

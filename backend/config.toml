@@ -94,7 +94,7 @@ length_mm = 1.0
 [capacitance]
 frequency_Hz = 1000.0
 excitation_Vrms = 1.0
-calibration = "cell_example.toml"
+calibration = "FC100_0260.toml"   # deine Zelle, Blatt 0260-FC100-b. cell_example.toml ist die lineare Testzelle
 
 [instruments]
 supply = "rp100"         # rp100 | keithley2400 | lockin_amp

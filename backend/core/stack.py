@@ -155,6 +155,13 @@ def build(cfg, publish=lambda ev: None, speed=None, virtual=False, noise=True, s
         else:
             clock = RealClock(speed if speed is not None else cfg["mode"].get("sim_speed", 1.0))
         inst, w = sim.build_sim(clock, cfg.get("sim", {}), noise=noise, seed=seed)
-        return Stack(cfg, inst, clock, True, publish, world=w)
+        st = Stack(cfg, inst, clock, True, publish, world=w)
+        if getattr(st.cal, "model", "linear") != "linear":
+            # Die Sim antwortet wie die echte Zelle laut Blatt. Eine eigene Kopie: ein Tare im
+            # Programm verschiebt die Anzeige, nicht den Sensor.
+            truth = copy.deepcopy(st.cal)
+            truth._tare_file = None
+            w.cal = truth
+        return st
     from instruments import real
     return Stack(cfg, real.build_real(cfg), RealClock(1.0), False, publish)

@@ -1,0 +1,30 @@
+# Razorbill FC100 #0260, Kalibrierblatt "Capacitance Curves FC100 #0260"
+# Datastore ID 0260-FC100-b. Kalibrierung gemessen 2023-02-15, Temperaturantwort 2023-02-17,
+# korrigierte Fassung QA approved 2024-10-02 (die alte Fassung vom 2023-09-27 skalierte alpha
+# mit der Temperatur, die neue multipliziert die Kraft mit kappa).
+# Kapazität gemessen mit Keysight E4980AL, Kraft mit HBM ClipX/Z30a.
+#
+#   C = alpha / (F/kappa + f0) + Cp            F = kappa * (alpha / (C - Cp) - f0)
+#   kappa(T) = 1 / (0.91 + 5e-5 T + 9e-7 T^2)  (kappa = 1 bei 290 K)
+#   df0(T)   = a + b T + c T^2 + d T^3 + e T^4 (Änderung von f0 in N)
+#
+# VOR DEM FREIGEBEN: jede Zahl unten mit dem Papierblatt vergleichen. Sie sind von einem
+# Foto abgeschrieben. Erst dann verified = true setzen. Bis dahin bleibt der Kraftregler
+# an echten Geräten gesperrt, die Kraftanzeige funktioniert aber.
+
+[cell]
+serial = "FC100 #0260"
+sheet = "0260-FC100-b, QA 2024-10-02"
+verified = false
+
+[force]
+model = "razorbill"
+sign = 1                     # wie auf dem Blatt: Zug positiv, C fällt unter Zug
+alpha_NpF = 1710.47          # N pF
+f0_N = 1328.21               # N, bei 290 K und Raumfeuchte (Luft)
+Cp_pF = 0.0244               # pF
+T_sheet_K = 290.0
+kappa_denominator = [0.91, 5e-5, 9e-7]
+# a, b, c, d, e
+df0_poly = [111.0, -0.0541, -0.000138, -1.94e-6, -7.94e-11]
+df0_range_K = [0.0, 305.0]   # gemessen von etwa 2 K bis 290 K, außerhalb wird geklemmt
