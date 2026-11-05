@@ -97,6 +97,8 @@ Messung Schritt für Schritt. Stand 5. November 2026, passend zu <span class="mo
   <div><span class="num">6</span><a href="#kalibrierung">Kraftkalibrierung #0260</a></div>
   <div><span class="num">7</span><a href="#software">Software: Start und Bedienung</a></div>
   <div><span class="num">8</span><a href="#konfiguration">Konfiguration</a></div>
+  <div><span class="num">8a</span><a href="#cernox">Zellthermometer (Cernox)</a></div>
+  <div><span class="num">8b</span><a href="#aufnahme">Einfach nur aufnehmen</a></div>
   <div><span class="num">9</span><a href="#schritte">Schritt für Schritt</a></div>
   <div><span class="num">10</span><a href="#elastokalorik">Elastokalorik messen</a></div>
   <div><span class="num">11</span><a href="#auswertung">Auswertung</a></div>
@@ -862,6 +864,48 @@ Die Seite „Grenzen“ zeigt, was gerade gilt.</p>
 klein, gut für Messungen bei B = 0. Das Feld kann persistent gefahren werden (<span class="mono">"persistent": true</span>).</p>
 <p>Die Schalter „Simulation“ und „Nur lesen“ sitzen auf derselben Seite. Umschalten geht nur ohne laufende Sequenz und mit weniger als 1 V an
 beiden Stapeln. Das Backend wird dabei mit der neuen Konfiguration neu aufgebaut, die Seite lädt neu.</p>
+
+<h2 id="cernox">Zellthermometer (Cernox)</h2>
+<p>Ein eigenes Thermometer nahe der Zelle misst, was das PPMS-Thermometer nur schätzt: wie warm die Stapel und die Probe wirklich sind.
+StressCell nutzt es an drei Stellen:</p>
+<ul>
+  <li><b>Spannungsfenster:</b> Standard <span class="mono">window = "max"</span>: Es zählt die höhere Temperatur aus PPMS (mit Reserve und
+      Nachlaufmodell) und Cernox (mit <span class="mono">margin_K</span>). Beim Abkühlen ist die Zelle wärmer, dann zählt das Cernox. Beim Aufwärmen ist
+      das PPMS-Thermometer vorne, dann zählt das PPMS. Das ist in beide Richtungen sicher. <span class="mono">window = "cernox"</span>: nur das Cernox,
+      das PPMS springt ein, wenn das Cernox ausfällt.</li>
+  <li><b>Kraft:</b> Die Kalibrierung rechnet κ(T) und Δf₀(T) mit der Zelltemperatur. Auch Tare und dF/dD nehmen sie.</li>
+  <li><b>Thermokraft:</b> Die Seebeck-Kurve für ΔT der Probe nimmt die Zelltemperatur.</li>
+</ul>
+<table>
+  <tr><th style="width:20%">Auslesung</th><th style="width:40%">config.toml [cell_thermometer]</th><th>Hinweise</th></tr>
+  <tr><td class="dev">Lake Shore</td><td><span class="mono">source = "lakeshore"</span>, <span class="mono">model</span> 218/224/335/336/350/372, <span class="mono">address</span>, <span class="mono">input</span></td><td>Das Gerät rechnet mit seiner eigenen Kurve. Am saubersten.</td></tr>
+  <tr><td class="dev">PPMS-Brücke</td><td><span class="mono">source = "ppms_bridge"</span>, <span class="mono">channel</span>, <span class="mono">current_uA</span>, <span class="mono">calibration</span></td><td>Über die Puck-Pins. Kleiner Strom (10 µA oder weniger), sonst heizt sich das Cernox bei tiefer T selbst.</td></tr>
+  <tr><td class="dev">DMM 4-Leiter</td><td><span class="mono">source = "dmm"</span>, <span class="mono">address</span>, <span class="mono">calibration</span></td><td>Messstrom fest und eher groß: erst oberhalb von etwa 20 K brauchbar.</td></tr>
+</table>
+<p><b>Kalibrierkurve:</b> Lake-Shore-Datei <span class="mono">.340</span> (Format 3 oder 4) oder CSV mit <span class="mono">R_ohm,T_K</span> in
+<span class="mono">calibrations/</span>. Außerhalb der Kurve gibt es keinen Wert, extrapoliert wird nie. <b>Unkalibriertes Cernox:</b> <span class="mono">calibration</span>
+leer lassen, dann wird nur R aufgezeichnet. Ohne Probenlast langsam (höchstens 0,5 K/min) abkühlen und aufwärmen, dabei „Aufnahme“ mit 5 s, dann
+<span class="mono">python tools/cernox_fit.py data/&lt;Ordner&gt;/data.csv calibrations/cernox_eigen.csv</span>. Das Skript mittelt Abkühlen und Aufwärmen,
+damit der Nachlauf herausfällt, und warnt, wenn beide Richtungen mehr als 2 % auseinanderliegen.</p>
+<div class="box warn">
+  <h4>Ohne PPMS-Daten</h4>
+  <p>Ist „PPMS lesen“ aus, liefert das Cernox die Temperatur, und das Temperaturfenster öffnet sich bei tiefer Temperatur. Der Kammerzustand bleibt
+  aber unbekannt, also gilt weiter die Grenze für Druckwechsel: ±50 V je Stapel. Für das volle Fenster „PPMS lesen“ anlassen und nur „PPMS steuern“ ausschalten.</p>
+</div>
+
+<h2 id="aufnahme">Einfach nur aufnehmen</h2>
+<p>Für den Fall, dass du nur Daten haben willst, ohne Sequenz: in der Titelleiste Name und Intervall eintragen, <b>● Aufnahme</b>. Jede Zeile enthält
+Zeit, T PPMS, T Zelle, R Cernox, Fenster, B, Kammer, Kraft, Spannung, Kapazität, beide Stapelspannungen und Ströme, Drive, Lock-in-Werte,
+ΔT, dF/dD, dT/dσ, ΔT DC, Ziel des Kraftreglers und aktive Alarme. Ins Notizfeld getippt und Enter: Die Notiz steht in der nächsten Zeile.</p>
+<ul>
+  <li>Die Aufnahme schaltet nichts. Sie läuft im Nur-Lese-Modus, neben einer Sequenz, neben einem Python-Skript und neben Handsteuerung.</li>
+  <li>Der Guard läuft wie immer mit: Alles bleibt im erlaubten Bereich, Eingriffe stehen in der Spalte <span class="mono">alarms</span>.</li>
+  <li>Ablage: <span class="mono">data/&lt;Datum_Zeit&gt;_rec_&lt;Name&gt;/data.csv</span>, dazu config.toml und Kalibrierung als Kopie. In „Daten“ ansehen, als CSV herunterladen.</li>
+  <li>Python: <span class="mono">lab.record_start("name", 1.0)</span>, <span class="mono">lab.record_note("…")</span>, <span class="mono">lab.record_stop()</span>.</li>
+  <li>„Ganz dumm“ beobachten: Einstellungen auf <i>Nur lesen</i> und <i>PPMS steuern aus</i>, dann Aufnahme an. Gesteuert wird dann nur an den Geräten selbst,
+      StressCell schreibt mit und warnt.</li>
+  <li>In der Simulation läuft die Zeit im Zeitraffer, das Intervall auch.</li>
+</ul>
 
 <h2>Beispiel Aufbau A (Standard ohne RP100)</h2>
 <pre class="code">[ac]

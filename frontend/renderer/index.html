@@ -22,6 +22,13 @@
     <span id="run-pill" class="pill idle" title="Zustand der laufenden Sequenz">idle</span>
     <span id="run-text" class="muted"></span>
     <span class="grow"></span>
+    <span id="rec-box" class="rec-box">
+      <input id="rec-name" value="aufnahme" title="Name der Aufnahme, wird Teil des Ordnernamens" aria-label="Name der Aufnahme">
+      <input id="rec-dt" value="1" title="Intervall in Sekunden" aria-label="Intervall in Sekunden" style="width:44px">
+      <button id="rec-btn" title="Datenaufnahme ohne Sequenz: alle wichtigen Spalten im Intervall in data/…_rec_Name/data.csv. Schaltet nichts, läuft auch im Nur-Lesen-Modus.">● Aufnahme</button>
+      <input id="rec-note" placeholder="Notiz …" title="Notiz in die nächste Zeile der Aufnahme, Enter schickt ab" class="hidden">
+      <span id="rec-info" class="muted small"></span>
+    </span>
     <span id="conn" class="dot" title="Verbindung zum Backend: grün = verbunden"></span>
     <button id="help-btn" title="Handbuch öffnen (F1)">? Hilfe</button>
     <button id="stop-all" title="Sequenz und Kraftregler stoppen, AC aus, beide Stapel auf 0 V rampen. Danach ist alles gesperrt, bis jemand quittiert.">STOP ALL</button>

@@ -49,6 +49,23 @@ def checklist(st) -> list[dict]:
     else:
         out.append(_item("ppms", "PPMS", OK, "PPMS wird gelesen und von StressCell gesteuert.", "", "PPMS"))
 
+    cc = cfg.get("cell_thermometer", {})
+    if cc.get("source", "none") != "none":
+        Tc, Tp = last.get("T_cell"), last.get("T")
+        if Tc is None and last.get("R_cell") is not None:
+            out.append(_item("cernox", "Zellthermometer", WARN, f"Nur Widerstand: R = {last['R_cell']:.6g} Ohm, keine Kurve.",
+                             "Ohne Kurve zählt das Cernox nicht fürs Fenster. Mit tools/cernox_fit.py eine Kurve aus einer "
+                             "langsamen Aufnahme gegen das PPMS machen.", "Zellthermometer"))
+        elif Tc is None:
+            out.append(_item("cernox", "Zellthermometer", OPEN, "Keine gültige Temperatur vom Cernox.",
+                             "Adresse, Eingang, Kurve und Verkabelung prüfen. Bis dahin rechnet das Fenster nur mit dem PPMS.",
+                             "Zellthermometer"))
+        else:
+            diff = f", PPMS {Tp:.2f} K (Differenz {Tc - Tp:+.2f} K)" if Tp is not None else ""
+            out.append(_item("cernox", "Zellthermometer", OK, f"T Zelle {Tc:.3f} K{diff}, Fenster nach {cc.get('window', 'max')}",
+                             "Bei konstanter Temperatur sollten beide nach dem Einschwingen nahe beieinander liegen.",
+                             "Zellthermometer"))
+
     resp = {"Temperatur": last.get("T") if mode.get("ppms_read", True) else 0.0,
             "Kapazität": last.get("C_pF"), "Netzteil": last.get("set_C")}
     missing = [k for k, v in resp.items() if v is None]

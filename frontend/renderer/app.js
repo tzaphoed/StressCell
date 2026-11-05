@@ -38,7 +38,8 @@ const CONFIG = { responsive: true, displaylogo: false }
 // ── Live-Anzeige ─────────────────────────────────────────────────────────
 // [Schlüssel, Name, Einheit, Nachkommastellen, Faktor, Erklärung]
 const READOUTS = [
-  ['T', 'Temperatur', 'K', 3, 1, 'PPMS-Thermometer. Die Zelle hinkt beim Abkühlen hinterher, darum rechnet das Fenster mit dem langsameren Wert.'],
+  ['T', 'T PPMS', 'K', 3, 1, 'PPMS-Thermometer. Die Zelle hinkt beim Abkühlen hinterher, darum rechnet das Fenster mit dem langsameren Wert.'],
+  ['T_cell', 'T Zelle', 'K', 3, 1, 'Eigenes Thermometer an der Zelle (Cernox), wenn eingerichtet. Kraft und Thermokraft rechnen dann mit diesem Wert, das Fenster mit dem wärmeren aus PPMS und Zelle.'],
   ['B', 'Feld', 'T', 3, 1, 'Magnetfeld laut MultiVu'],
   ['F', 'Kraft', 'N', 3, 1, 'Aus der Kapazität über die Kalibrierformel. Positiv ist Zug. Erst nach Tare im Vakuum absolut richtig.'],
   ['stress_MPa', 'Spannung', 'MPa', 1, 1, 'F geteilt durch den Probenquerschnitt aus config.toml [sample]'],
@@ -82,6 +83,7 @@ function showMonitor(d) {
   const f = d.force
   $('#loop-text').textContent = f?.enabled ? `an, ${f.target.toFixed(2)} N, G ${f.G.toFixed(2)} N/V` : 'aus'
   pushEce(d)
+  if (recActive) { recRows++; $('#rec-info').textContent = `läuft` }
   draw()
 }
 
@@ -159,12 +161,13 @@ function connect() {
     if (m.type === 'hello') {
       m.history.forEach(push)
       if (m.last?.t !== undefined) showMonitor(m.last)
-      showAlarms(m.alarms); showRun(m.run)
+      showAlarms(m.alarms); showRun(m.run); if (m.record) showRecord(m.record)
     } else if (m.type === 'monitor') { push(m.data); showMonitor(m.data) }
     else if (m.type === 'alarms') showAlarms(m.active)
     else if (m.type === 'run') { showRun(m.data); if (m.data.state === 'running') for (const k in points) delete points[k] }
     else if (m.type === 'point') addPoint(m.data)
     else if (m.type === 'log') { const l = $('#run-log'); l.textContent += m.line + '\n'; l.scrollTop = l.scrollHeight }
+    else if (m.type === 'record') showRecord(m.data)
     else if (m.type === 'reload') { toast('Backend mit neuen Einstellungen neu gestartet, Seite lädt neu'); setTimeout(() => location.reload(), 1500) }
   }
 }
@@ -207,11 +210,30 @@ $$('form[data-op]').forEach(f => f.onsubmit = e => {
   step(st)
 })
 
+// Aufnahme
+let recActive = false, recRows = 0
+function showRecord(r) {
+  recActive = !!r.active
+  $('#rec-btn').textContent = recActive ? '■ Aufnahme stoppen' : '● Aufnahme'
+  $('#rec-btn').classList.toggle('rec-on', recActive)
+  $('#rec-note').classList.toggle('hidden', !recActive)
+  $('#rec-info').textContent = recActive ? 'läuft' : r.path ? `${r.rows} Zeilen gespeichert` : ''
+  $('#rec-info').title = r.path || ''
+}
+$('#rec-btn').onclick = guarded(async () => {
+  if (recActive) { const r = await post('/record/stop'); showRecord({ ...r, active: false }); toast(`Aufnahme gespeichert: ${r.path}`) }
+  else { const r = await post('/record/start', { name: $('#rec-name').value, interval_s: Number($('#rec-dt').value) }); toast(`Aufnahme läuft: ${r.dir}`); showRecord({ active: true }) }
+})
+$('#rec-note').onkeydown = guarded(async e => {
+  if (e.key !== 'Enter' || !e.target.value) return
+  await post('/record/note', { text: e.target.value }); toast('Notiz in der nächsten Zeile'); e.target.value = ''
+})
+
 // Elastokalorik live
 const ECE_RO = [
   ['T_ac_K', 'ΔT', 'mK', 3, 1e3], ['theta_stack', 'Phase am Stapel', '°', 1, 1], ['f_ac', 'f', 'Hz', 1, 1],
   ['V_ac', 'V Spitze', 'V', 2, 1], ['F', 'Offset F', 'N', 2, 1], ['stress_MPa', 'σ', 'MPa', 1, 1], ['D_set', 'Offset D', 'V', 1, 1],
-  ['G_used', 'dF/dD', 'N/V', 3, 1], ['F_ac_N', 'F_ac', 'N', 3, 1], ['dT_dsigma_K_MPa', 'dT/dσ', 'mK/MPa', 3, 1e3], ['T', 'T', 'K', 2, 1],
+  ['G_used', 'dF/dD', 'N/V', 3, 1], ['F_ac_N', 'F_ac', 'N', 3, 1], ['dT_dsigma_K_MPa', 'dT/dσ', 'mK/MPa', 3, 1e3], ['T_sample', 'T Probe', 'K', 2, 1],
 ]
 $('#ece-readouts').innerHTML = ECE_RO.map(([k, n, u]) =>
   `<div class="ro" id="ece-${k}"><div class="k">${n}</div><div><span class="v">–</span><span class="u">${u}</span></div></div>`).join('')
@@ -247,17 +269,21 @@ $('#ece-clear').onclick = () => { for (const k in ece) ece[k].length = 0; fbin.c
 
 // Einstellungen
 const SETTING_LABEL = { simulate: 'Simulation', sim_speed: 'Zeitraffer der Simulation', read_only: 'Nur lesen',
-  ppms_read: 'PPMS-Daten lesen', ppms_control: 'PPMS steuern (T, B, Kammer)', ppms_emergency_hold: 'Notfall-Halt beim Aufwärmen' }
+  ppms_read: 'PPMS-Daten lesen', ppms_control: 'PPMS steuern (T, B, Kammer)', ppms_emergency_hold: 'Notfall-Halt beim Aufwärmen',
+  cell_source: 'Zellthermometer (Cernox)', cell_window: 'Fenster nach' }
 const loadSettings = guarded(async () => {
   const s = await get('/settings')
   $('#settings-form').innerHTML = Object.entries(s.values).map(([k, v]) => typeof v === 'boolean'
     ? `<label class="switch" title="${esc(s.help[k])}"><input type="checkbox" name="${k}" ${v ? 'checked' : ''}> ${SETTING_LABEL[k] ?? k}<span class="muted small">${esc(s.help[k])}</span></label>`
-    : `<label title="${esc(s.help[k])}">${SETTING_LABEL[k] ?? k}<input name="${k}" value="${v}"></label>`).join('')
+    : s.choices?.[k]
+      ? `<label title="${esc(s.help[k])}">${SETTING_LABEL[k] ?? k}<select name="${k}">${s.choices[k].map(c => `<option ${c === v ? 'selected' : ''}>${c}</option>`).join('')}</select><span class="muted small">${esc(s.help[k])}</span></label>`
+      : `<label title="${esc(s.help[k])}">${SETTING_LABEL[k] ?? k}<input name="${k}" value="${v}"></label>`).join('')
   $('#settings-msg').textContent = s.file
 })
 $('#settings-save').onclick = guarded(async () => {
   const values = {}
   for (const i of $('#settings-form').querySelectorAll('input')) values[i.name] = i.type === 'checkbox' ? i.checked : Number(i.value)
+  for (const s of $('#settings-form').querySelectorAll('select')) values[s.name] = s.value
   if (!values.simulate && !confirm('Echte Geräte: wirklich umschalten? Erst nach Ersatzkondensator und check_instruments.py.')) return
   $('#settings-msg').textContent = 'starte neu …'
   await post('/settings', { values })
@@ -267,7 +293,7 @@ $('#settings-save').onclick = guarded(async () => {
 const STATE_TEXT = { ok: 'erledigt', open: 'offen', warn: 'prüfen', info: 'Info' }
 const CHAPTER = { 'Software starten': 'software', 'Erster Kontakt': 'erster-kontakt', 'Anschlussbox': 'anschlussbox',
   'Kalibrierung': 'kalibrierung', 'AC-Kette': 'ac-kette', 'Vakuum': 'vakuum', 'Probe': 'probe', 'Grenzwerte': 'grenzwerte',
-  'PPMS': 'ppms' }
+  'PPMS': 'ppms', 'Zellthermometer': 'cernox' }
 const loadChecklist = guarded(async () => {
   const { items } = await get('/setup/checklist')
   $('#checklist').replaceChildren(...items.map(i => {

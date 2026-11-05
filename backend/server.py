@@ -163,7 +163,7 @@ def _identify(st) -> dict:
 def status_dict():
     st = State.stack
     return clean({"last": st.supervisor.last, "run": st.runner.info(),
-                  "alarms": list(st.supervisor.alarms.active.values())})
+                  "alarms": list(st.supervisor.alarms.active.values()), "record": st.supervisor.recorder.info()})
 
 
 @app.get("/status")
@@ -208,10 +208,38 @@ def help_page():
     return HTMLResponse(p.read_text(encoding="utf-8"))
 
 
+@app.get("/record")
+def record_info():
+    return State.stack.supervisor.recorder.info()
+
+
+@app.post("/record/start")
+def record_start(body: dict = Body(default={})):
+    try:
+        d = State.stack.supervisor.recorder.start(body.get("name", "aufnahme"), body.get("interval_s", 1.0))
+    except (TypeError, ValueError) as e:
+        raise HTTPException(400, str(e))
+    hub.publish({"type": "record", "data": State.stack.supervisor.recorder.info()})
+    return {"ok": True, "dir": d}
+
+
+@app.post("/record/stop")
+def record_stop():
+    info = State.stack.supervisor.recorder.stop()
+    hub.publish({"type": "record", "data": State.stack.supervisor.recorder.info()})
+    return info
+
+
+@app.post("/record/note")
+def record_note(body: dict = Body(...)):
+    State.stack.supervisor.recorder.note(body.get("text", ""))
+    return {"ok": True}
+
+
 @app.get("/settings")
 def settings_get():
-    return {"values": settings.current(State.cfg),
-            "help": {k: v[2] for k, v in settings.SETTINGS.items()}, "file": str(State.cfg["paths"]["config"])}
+    return {"values": settings.current(State.cfg), "choices": settings.choices(),
+            "help": {k: v[3] for k, v in settings.SETTINGS.items()}, "file": str(State.cfg["paths"]["config"])}
 
 
 @app.post("/settings")

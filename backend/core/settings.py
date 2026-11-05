@@ -10,19 +10,31 @@ import re
 import tomllib
 from pathlib import Path
 
-# Schlüssel -> (Abschnitt, Typ, Erklärung)
+# Name -> (Abschnitt, Schlüssel, Typ oder Auswahl, Erklärung)
 SETTINGS = {
-    "simulate": ("mode", bool, "Simulation statt echter Geräte"),
-    "sim_speed": ("mode", float, "Zeitraffer der Simulation"),
-    "read_only": ("mode", bool, "Nur lesen: jeder Setzbefehl wird abgelehnt"),
-    "ppms_read": ("mode", bool, "PPMS-Daten lesen. Aus: keine Temperatur, engstes Spannungsfenster"),
-    "ppms_control": ("mode", bool, "StressCell stellt T, B und Kammer. Aus: das macht MultiVu"),
-    "ppms_emergency_hold": ("mode", bool, "Notfall: Aufwärmen anhalten, wenn die Spannung nicht fällt"),
+    "simulate": ("mode", "simulate", bool, "Simulation statt echter Geräte"),
+    "sim_speed": ("mode", "sim_speed", float, "Zeitraffer der Simulation"),
+    "read_only": ("mode", "read_only", bool, "Nur lesen: jeder Setzbefehl wird abgelehnt"),
+    "ppms_read": ("mode", "ppms_read", bool, "PPMS-Daten lesen. Aus: keine Temperatur und Kammer vom PPMS"),
+    "ppms_control": ("mode", "ppms_control", bool, "StressCell stellt T, B und Kammer. Aus: das macht MultiVu"),
+    "ppms_emergency_hold": ("mode", "ppms_emergency_hold", bool, "Notfall: Aufwärmen anhalten, wenn die Spannung nicht fällt"),
+    "cell_source": ("cell_thermometer", "source", ("none", "lakeshore", "ppms_bridge", "dmm"),
+                    "Eigenes Thermometer an der Zelle (Cernox). Adresse und Kurve in config.toml"),
+    "cell_window": ("cell_thermometer", "window", ("max", "cernox"),
+                    "max: höhere Temperatur aus PPMS und Cernox zählt. cernox: nur das Cernox, PPMS als Ersatz"),
 }
 
 
 def current(cfg: dict) -> dict:
-    return {k: cfg.get(sec, {}).get(k, True if typ is bool else 1.0) for k, (sec, typ, _) in SETTINGS.items()}
+    out = {}
+    for name, (sec, key, typ, _) in SETTINGS.items():
+        dflt = True if typ is bool else 1.0 if typ is float else typ[0]
+        out[name] = cfg.get(sec, {}).get(key, dflt)
+    return out
+
+
+def choices() -> dict:
+    return {n: list(v[2]) for n, v in SETTINGS.items() if isinstance(v[2], tuple)}
 
 
 def _fmt(v) -> str:
@@ -38,8 +50,11 @@ def validate(changes: dict) -> dict:
     for k, v in changes.items():
         if k not in SETTINGS:
             raise ValueError(f"setting {k!r} cannot be changed here")
-        typ = SETTINGS[k][1]
-        if typ is bool:
+        typ = SETTINGS[k][2]
+        if isinstance(typ, tuple):
+            if v not in typ:
+                raise ValueError(f"{k} must be one of {', '.join(typ)}")
+        elif typ is bool:
             if not isinstance(v, bool):
                 raise ValueError(f"{k} must be true or false")
         else:
@@ -55,8 +70,8 @@ def write(path: Path, changes: dict) -> None:
     Schlüssel kommen direkt unter die Abschnittsüberschrift."""
     changes = validate(changes)
     text = Path(path).read_text(encoding="utf-8")
-    for k, v in changes.items():
-        sec = SETTINGS[k][0]
+    for name, v in changes.items():
+        sec, k = SETTINGS[name][0], SETTINGS[name][1]
         m = re.search(rf"^\[{re.escape(sec)}\][^\n]*\n", text, re.M)
         if m is None:
             text += f"\n[{sec}]\n{k} = {_fmt(v)}\n"

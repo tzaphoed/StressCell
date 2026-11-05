@@ -10,12 +10,14 @@ import copy
 import time
 
 from instruments import sim
+from instruments import thermometers as sim_thermo
 from instruments.base import NoCryostat
 from instruments.sources import dc_channels
 
 from .calibration import ForceCalibration
 from .clock import RealClock, VirtualClock
 from .interpreter import Abort, Context, Interpreter, StepError
+from .recorder import Recorder
 from .runner import Runner
 from .safety import Safety
 from .sequence import check_sequence
@@ -34,6 +36,7 @@ class Stack:
         self.cal = cal or ForceCalibration.load(cfg["paths"]["calibration_dir"] / cfg["capacitance"]["calibration"])
         self.safety = Safety(inst, cfg, persist=not simulated)
         self.supervisor = Supervisor(inst, self.safety, self.cal, cfg, clock, publish)
+        self.supervisor.recorder = Recorder(cfg, self.cal)
         self.runner = Runner(self)
         self.supervisor.on_guard_abort = lambda why: self.runner.stop(f"guard: {why}")
         if self.safety.latched:
@@ -113,12 +116,15 @@ class Stack:
         s = self.supervisor.last
         clock = VirtualClock()
         scfg = {**self.cfg.get("sim", {})}
-        if s.get("T") is not None:
-            scfg["T_start"] = s["T"]
+        T0 = s.get("T") if s.get("T") is not None else s.get("T_cell")
+        if T0 is not None:
+            scfg["T_start"] = T0
         inst, w = sim.build_sim(clock, scfg, noise=False)
         inst.supply.dc_channels = dc_channels(self.inst.supply)   # gleiche Verdrahtung wie echt
         if isinstance(self.inst.cryo, NoCryostat):
             inst.cryo = NoCryostat()
+        if self.inst.cell_thermo is not None:
+            inst.cell_thermo = sim_thermo.SimCell(w)
         cal = copy.deepcopy(self.cal)
         cal._tare_file = None
         w.cal = cal                      # die Sim antwortet mit den Kalibrierdaten der echten Zelle
@@ -164,6 +170,8 @@ def build(cfg, publish=lambda ev: None, speed=None, virtual=False, noise=True, s
         inst.supply.dc_channels = dc_channels_from_cfg(cfg)     # die Sim kennt die echte Verdrahtung
         if not cfg["mode"].get("ppms_read", True):
             inst.cryo = NoCryostat()                              # wie echt: keine Temperatur
+        if cfg.get("cell_thermometer", {}).get("source", "none") != "none":
+            inst.cell_thermo = sim_thermo.SimCell(w)              # Zelltemperatur der Sim, hinkt nach
         st = Stack(cfg, inst, clock, True, publish, world=w)
         if getattr(st.cal, "model", "linear") != "linear":
             # Die Sim antwortet wie die echte Zelle laut Blatt. Eine eigene Kopie: ein Tare im

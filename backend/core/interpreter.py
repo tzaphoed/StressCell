@@ -122,7 +122,7 @@ class Context:
     # ── Werte ────────────────────────────────────────────────────────────
     def names(self) -> dict:
         s = self.snapshot()
-        live = {"T": s.get("T"), "B": s.get("B"), "F": s.get("F"), "C": s.get("C_pF"), "D": s.get("D_set")}
+        live = {"T": s.get("T"), "Tc": s.get("T_cell"), "B": s.get("B"), "F": s.get("F"), "C": s.get("C_pF"), "D": s.get("D_set")}
         return {**{k: v for k, v in live.items() if v is not None}, **self.vars}
 
     def val(self, x) -> float:
@@ -152,7 +152,7 @@ class Context:
     # ── Daten ────────────────────────────────────────────────────────────
     def record(self, s: dict, label: str):
         row = {"wall": s.get("wall"), "t": s.get("t"), "label": label, "C_zero_pF": self.st.cal.C_zero}
-        for k in ("T", "B", "F", "stress_MPa", "C_pF", "loss", "V_exc", "V_T", "V_C", "I_T", "I_C", "D_set",
+        for k in ("T", "T_cell", "R_cell", "B", "F", "stress_MPa", "C_pF", "loss", "V_exc", "V_T", "V_C", "I_T", "I_C", "D_set",
                   "f_ac", "V_ac", "X", "Y", "R", "theta", "T_ac_K", "F_ac_N", "dT_dsigma_K_MPa",
                   "phi_RC_deg", "theta_stack", "dT_dc_K", "G_used"):
             row[k] = s.get(k)
@@ -319,7 +319,8 @@ class Interpreter:
     def op_tare(self, st):
         c = self.c
         s = c.fresh()
-        if s.get("C_pF") is None or s.get("T") is None:
+        T = s.get("T_sample", s.get("T"))         # mit Zellthermometer dessen Temperatur, wie die Kraft
+        if s.get("C_pF") is None or T is None:
             raise StepError("tare: no capacitance or temperature reading")
         lim = self.lim
         D = s.get("D_set")
@@ -327,11 +328,11 @@ class Interpreter:
             raise StepError(f"tare: drive is {D} V, tare needs it near 0: a tare under load hides that load "
                             "from the force limit")
         shift = abs(s.get("F") or 0.0)
-        if (shift > lim["tare_F_max_N"] or s["T"] < lim["tare_T_min_K"]) and st.get("accept") is not True:
-            raise StepError(f"tare would remove {shift:.1f} N at {s['T']:.1f} K. That may be real thermal "
+        if (shift > lim["tare_F_max_N"] or T < lim["tare_T_min_K"]) and st.get("accept") is not True:
+            raise StepError(f"tare would remove {shift:.1f} N at {T:.1f} K. That may be real thermal "
                             "stress. Use accept = true if the sample is not loaded.")
-        z = c.sup.tare(s["C_pF"], s["T"], persist=not (c.clock.virtual or c.st.simulated))
-        c.log(f"tare: C_zero = {z:.6f} pF at {s['T']:.3f} K")
+        z = c.sup.tare(s["C_pF"], T, persist=not (c.clock.virtual or c.st.simulated))
+        c.log(f"tare: C_zero = {z:.6f} pF at {T:.3f} K")
 
     # ── Kraft ────────────────────────────────────────────────────────────
     def _force_gate(self):
@@ -427,8 +428,11 @@ class Interpreter:
             # falsches, das dT/dsigma um Größenordnungen verfälscht
             raise StepError(f"measure_gain: dF/dD = {G:.4f} N/V is implausibly small (below {G_min} N/V). "
                             f"Use a larger step than {step:g} V, or check that the sample carries force.")
-        c.sup.G_table.append((s["T"], G, D0))      # D0: gilt nur nahe diesem Offset
-        c.log(f"measure_gain: dF/dD = {G:.4f} N/V at {s.get('T'):.2f} K")
+        T = s.get("T_sample", s.get("T"))
+        if T is None:
+            raise StepError("measure_gain: no temperature reading")
+        c.sup.G_table.append((T, G, D0))           # D0: gilt nur nahe diesem Offset
+        c.log(f"measure_gain: dF/dD = {G:.4f} N/V at {T:.2f} K")
 
     def op_frequency_sweep(self, st):
         c = self.c

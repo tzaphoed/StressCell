@@ -661,6 +661,35 @@ def build_sample(cfg, pool, cryo):
     return out[0] if len(out) == 1 else meters.MultiSample(out)
 
 
+CELL_THERMO_SOURCES = ("none", "lakeshore", "ppms_bridge", "dmm")
+
+
+def build_cell_thermo(cfg, pool, cryo):
+    """Eigenes Thermometer an der Zelle, siehe instruments/thermometers.py."""
+    from core.thermometry import Curve
+    from . import thermometers as th
+    c = cfg.get("cell_thermometer", {})
+    src = c.get("source", "none")
+    if src == "none":
+        return None
+    if src == "lakeshore":
+        return th.LakeShore(pool.get(c["address"]), c.get("model", "336"), c.get("input", "A"))
+    if src not in CELL_THERMO_SOURCES:
+        raise ValueError(f"[cell_thermometer] source = {src}: use {' | '.join(CELL_THERMO_SOURCES)}")
+    cp = cfg["paths"]["calibration_dir"] / c.get("calibration", "")
+    # Ohne Kurve wird nur der Widerstand aufgezeichnet, die Temperatur bleibt leer und zählt nicht
+    # fürs Fenster. So lässt sich ein unkalibriertes Cernox gegen das PPMS kalibrieren.
+    curve = Curve.load(cp) if c.get("calibration") and cp.is_file() else None
+    if curve is None:
+        log.warning("cell thermometer: no curve %s, recording resistance only", cp)
+    if src == "ppms_bridge":
+        if isinstance(cryo, NoCryostat):
+            raise RuntimeError("cell thermometer on the PPMS bridge needs PPMS data: switch ppms_read on")
+        return th.Resistance(th.ppms_bridge_reader(cryo, c.get("channel", 2), c.get("current_uA", 10.0)), curve,
+                             f"PPMS bridge {c.get('channel', 2)}")
+    return th.Resistance(th.dmm_reader(pool.get(c["address"]), float(c.get("nplc", 1.0))), curve, "DMM 4-wire")
+
+
 def build_real(cfg, pool: VisaPool | None = None, cryo=None) -> Instruments:
     i = cfg["instruments"]
     pool = pool or VisaPool()
@@ -690,7 +719,8 @@ def build_real(cfg, pool: VisaPool | None = None, cryo=None) -> Instruments:
         cryo = PPMS(i["multipyvu_host"], i["multipyvu_port"]) if cfg["mode"].get("ppms_read", True) else NoCryostat()
     sample = build_sample(cfg, pool, cryo)
     lockin = build_lockin(cfg, pool) if cfg.get("ac", {}).get("enabled", False) else None
-    return Instruments(supply, cap, cryo, sample, lockin=lockin)
+    cell = build_cell_thermo(cfg, pool, cryo)
+    return Instruments(supply, cap, cryo, sample, lockin=lockin, cell_thermo=cell)
 
 
 def configured_devices(cfg) -> list[tuple[str, str, str]]:
@@ -724,4 +754,7 @@ def configured_devices(cfg) -> list[tuple[str, str, str]]:
     for n in ([names] if isinstance(names, str) else names):
         if n in ("k2182a", "dmm344xx"):
             out.append(("voltmeter", n, i["voltmeter"]))
+    ct = cfg.get("cell_thermometer", {})
+    if ct.get("source") in ("lakeshore", "dmm"):
+        out.append(("cell thermometer", f"{ct['source']} {ct.get('model', '')}".strip(), ct["address"]))
     return out

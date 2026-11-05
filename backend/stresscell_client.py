@@ -213,6 +213,23 @@ class Lab:
     def log(self, message):
         self._step("log", message=message)
 
+    # ── Aufnahme ohne Sequenz ────────────────────────────────────────────
+    def record_start(self, name="aufnahme", interval_s=1.0):
+        """Alle wichtigen Spalten alle interval_s Sekunden nach data/..._rec_<name>/data.csv."""
+        if self._local:
+            return self._local.st.supervisor.recorder.start(name, interval_s)
+        return self._http.call("POST", "/record/start", {"name": name, "interval_s": interval_s})["dir"]
+
+    def record_note(self, text):
+        if self._local:
+            return self._local.st.supervisor.recorder.note(text)
+        self._http.call("POST", "/record/note", {"text": text})
+
+    def record_stop(self):
+        if self._local:
+            return self._local.st.supervisor.recorder.stop()
+        return self._http.call("POST", "/record/stop")
+
     def stop_all(self):
         if self._local:
             self._local.st.stop_all()

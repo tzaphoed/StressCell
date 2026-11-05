@@ -33,6 +33,11 @@ Die Seite „Start“ in der Oberfläche zeigt live, was vor dem ersten Einsatz 
   mit externer Referenz. AC-Kette mit Verstärkung und RC-Tiefpass, Phase gegen die Spannung am Stapel.
 - **Kraft:** E4980A/E4980AL, HP 4284A, AH2500A/2550A/2700A, Lock-in mit Stromeingang. Sperre gegen Übersprechen der AH-Brücke.
 - **Laden/Entladen:** Keithley 2182A, Keysight 34401A/34461A/34465A für die Thermospannung.
+- **Zellthermometer (Cernox):** Lake Shore 218/224/335/336/350/372, PPMS-Brücke oder DMM mit Kurve (.340/csv).
+  Fenster nach der wärmeren Temperatur aus PPMS und Zelle, Kraft und Thermokraft mit der Zelltemperatur.
+  `tools/cernox_fit.py` kalibriert ein Cernox gegen das PPMS.
+- **Einfach nur aufnehmen:** Aufnahme-Knopf mit Intervall und Notizen, schreibt alle wichtigen Spalten, auch im Nur-Lesen-Modus.
+- **Einstellungen:** Simulation, Nur lesen, PPMS lesen/steuern, Notfall-Halt, Zellthermometer.
 - **Oberfläche auf Deutsch:** Inbetriebnahme-Checkliste, Rechner, Kalibriertabelle über T, Gerätepanel, Erklärtexte, Handbuch.
 
 ## Aufbau

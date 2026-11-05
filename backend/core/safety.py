@@ -66,6 +66,9 @@ class Safety:
         self.T: float | None = None
         self.T_slow: float | None = None # was die Zelle vermutlich hat, wenn sie dem Thermometer nachläuft
         self.dTdt = 0.0
+        self.T_cell: float | None = None # eigenes Thermometer an der Zelle (Cernox), wenn vorhanden
+        self.dTcdt = 0.0
+        self.cell_cfg = cfg.get("cell_thermometer", {})
         self.chamber: str | None = None
         self.chamber_hold = 0            # so viele Abfragen dem Kammerzustand nicht trauen
         self.state_known = False         # False: es gab noch keine Abfrage, also nichts annehmen
@@ -103,11 +106,20 @@ class Safety:
 
     # ── Fenster ──────────────────────────────────────────────────────────
     def T_eff(self):
-        T = self.T
-        if T is None:
-            return None
-        ref = T if self.T_slow is None else max(T, self.T_slow)
-        return fc100.effective_temperature(ref, self.dTdt, self.lim["T_margin_K"], self.lim["T_lookahead_s"])
+        """Temperatur für das Fenster. Mit Zellthermometer standardmäßig die höhere aus PPMS (mit
+        Reserve und Nachlaufmodell) und Zelle (mit eigener Reserve): beim Abkühlen ist die Zelle wärmer,
+        beim Aufwärmen das PPMS-Thermometer. window = "cernox": nur die Zelle, das PPMS als Ersatz."""
+        cands = []
+        if self.T is not None:
+            ref = self.T if self.T_slow is None else max(self.T, self.T_slow)
+            cands.append(fc100.effective_temperature(ref, self.dTdt, self.lim["T_margin_K"], self.lim["T_lookahead_s"]))
+        if self.T_cell is not None:
+            c = fc100.effective_temperature(self.T_cell, self.dTcdt, float(self.cell_cfg.get("margin_K", 1.0)),
+                                            self.lim["T_lookahead_s"])
+            if self.cell_cfg.get("window", "max") == "cernox":
+                return c
+            cands.append(c)
+        return max(cands) if cands else None
 
     def chamber_limit(self, chamber=None) -> float | None:
         c = self.chamber if chamber is None else chamber

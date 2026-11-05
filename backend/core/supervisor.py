@@ -48,7 +48,7 @@ log = logging.getLogger("stresscell.supervisor")
 # Statusmeldungen von MultiVu, bei denen der Temperaturwert nichts taugt
 BAD_T_STATUS = {"General Failure", "Diagnostic", "Impedance Control Error"}
 
-LOG_COLUMNS = ("wall", "T", "B", "chamber", "C_pF", "loss", "F", "stress_MPa", "V_T", "V_C",
+LOG_COLUMNS = ("wall", "T", "T_cell", "R_cell", "B", "chamber", "C_pF", "loss", "F", "stress_MPa", "V_T", "V_C",
                "I_T", "I_C", "D_set", "vmin", "vmax")
 
 
@@ -102,6 +102,9 @@ class Supervisor:
         self._D_prev = None
         self._trip = 0.0
         self._T_rej: list[float] = []
+        self._Tc_prev = None                 # Zellthermometer: gleiche Plausibilitätsprüfung, eigener Zustand
+        self._Tc_rej: list[float] = []
+        self._last_Tc_ok = None
         self._T_held = False
         self._edges: set[str] = set()       # Ursachen, die schon einen Abbruch ausgelöst haben
         self._noise2 = cfg["limits"]["force_noise_N"] ** 2
@@ -119,6 +122,7 @@ class Supervisor:
         self._wd_thread = None
         self._tick_wall = None
         self.tick_lock = threading.Lock()
+        self.recorder = None                 # core.recorder.Recorder, vom Stack gesetzt
 
     def tare(self, C_pF, T, persist=True):
         """Nullpunkt setzen. Der Sprung im Kraftwert ist dann kein Probenbruch."""
@@ -154,6 +158,14 @@ class Supervisor:
                 self._abort("guard error")
             self.last = s
             self._remember(s)
+            if self.recorder is not None and self.recorder.active:
+                try:
+                    self.recorder.maybe_write({**s, "force": self.force.info()},
+                                              [a["text"] for a in self.alarms.active.values()])
+                except Exception as e:      # eine volle Platte darf den Guard nicht anhalten
+                    log.exception("recorder")
+                    self.alarms.set("recorder", f"Recording stopped: {e}")
+                    self.recorder.stop()
             self._tick_wall = time.monotonic()
             self.alarms.clear("watchdog")
             return s
@@ -180,6 +192,10 @@ class Supervisor:
             s[f"I_{n}"] = self._try(lambda: sup.current(c), "I")
             s[f"on_{n}"] = self._try(lambda: sup.output(c), "out")
         s["F"] = None
+        s["T_cell"] = s["R_cell"] = None
+        if getattr(self.inst, "cell_thermo", None) is not None:
+            ct = self._try(self.inst.cell_thermo.read, "cell thermometer") or {}
+            s["T_cell"], s["R_cell"] = ct.get("T_cell"), ct.get("R_cell")
         if self.inst.sample is not None:
             sm = self._try(self.inst.sample.read, "sample") or {}
             s["sample"] = sm
@@ -198,15 +214,16 @@ class Supervisor:
         direkt lesen, das Kapazitätsgerät ist zu langsam: sie kommt aus dF/dD (op measure_gain)."""
         out = {"T_ac_K": None, "F_ac_N": None, "dT_dsigma_K_MPa": None, "phi_RC_deg": None,
                "theta_stack": None, "G_used": None}
-        if s.get("R") is None or s.get("T") is None or not s.get("V_ac"):
+        T = s.get("T_sample", s.get("T"))
+        if s.get("R") is None or T is None or not s.get("V_ac"):
             return out
         if s.get("f_ac") and s.get("theta") is not None:
             # Phase gegen die Spannung am Stapel statt gegen den Oszillator: R2 und C hinken nach
             out["phi_RC_deg"] = self.safety.ac_chain.phase_deg(s["f_ac"])
             out["theta_stack"] = (s["theta"] - out["phi_RC_deg"] + 180.0) % 360.0 - 180.0
         gain = self.cfg.get("ac", {}).get("preamp_gain", 1.0)
-        out["T_ac_K"] = math.sqrt(2.0) * s["R"] / gain / seebeck_type_e(s["T"])
-        G = self.G_at(s["T"], s.get("D_set"))
+        out["T_ac_K"] = math.sqrt(2.0) * s["R"] / gain / seebeck_type_e(T)
+        G = self.G_at(T, s.get("D_set"))
         out["G_used"] = G
         if G:
             out["F_ac_N"] = G * s["V_ac"]
@@ -238,12 +255,47 @@ class Supervisor:
             return T
         return None
 
+    def _sane_cell(self, T, now):
+        """Wie _sane_T: unmögliche Werte und Sprünge zählen als fehlend, nach unten nie von selbst."""
+        if T is None or not isinstance(T, (int, float)) or not math.isfinite(T) or not 0.3 <= T <= 400.0:
+            return None
+        if self._Tc_prev is not None:
+            allowed = self.lim["T_jump_K"] + 0.5 * min(now - self._Tc_prev[0], self.lim["T_stale_s"])
+            if abs(T - self._Tc_prev[1]) > allowed:
+                self._Tc_rej.append(T)
+                if T > self._Tc_prev[1] and len(self._Tc_rej) >= 5 and max(self._Tc_rej[-5:]) - min(self._Tc_rej[-5:]) < 1.0:
+                    self._Tc_rej.clear()
+                    return T
+                return None
+        self._Tc_rej.clear()
+        return T
+
+    def _update_cell(self, s, now):
+        sf = self.safety
+        s["T_cell_raw"] = s.get("T_cell")
+        Tc = self._sane_cell(s.get("T_cell"), now)
+        s["T_cell"] = Tc
+        stale = float(self.cfg.get("cell_thermometer", {}).get("stale_s", self.lim["T_stale_s"]))
+        if Tc is not None:
+            if self._Tc_prev is not None and now > self._Tc_prev[0]:
+                raw = (Tc - self._Tc_prev[1]) / (now - self._Tc_prev[0])
+                sf.dTcdt += (raw - sf.dTcdt) * 0.5
+            self._Tc_prev = (now, Tc)
+            self._last_Tc_ok = now
+            sf.T_cell = Tc
+            sf.state_known = True
+        elif self._last_Tc_ok is not None and now - self._last_Tc_ok > stale:
+            sf.T_cell = None
+
     def _update_safety(self, s):
         sf = self.safety
         now = s["t"]
         s["T_raw"] = s.get("T")
         s["T"] = self._sane_T(s)
-        s["F"] = self.cal.force_from_C(s["C_pF"], s["T"])
+        self._update_cell(s, now)
+        # Kraft und Thermokraft mit der Temperatur der Zelle, wenn es ein Zellthermometer gibt
+        s["T_sample"] = s["T_cell"] if s["T_cell"] is not None else s["T"]
+        s["F"] = self.cal.force_from_C(s["C_pF"], s["T_sample"])
         s["stress_MPa"] = s["F"] / self.area if s["F"] is not None else None
         if s["T"] is not None:
             if self._T_prev is not None and now > self._T_prev[0]:
@@ -281,10 +333,10 @@ class Supervisor:
         if self.inst.lockin is not None:
             s.update(self._elastocaloric(s))
         sm = s.get("sample") or {}
-        if sm.get("V_tc") is not None and s["T"] is not None:
+        if sm.get("V_tc") is not None and s["T_sample"] is not None:
             # Thermospannung vom Nanovoltmeter, für Laden und Entladen (volles Delta-T_ad)
             g = float(self.cfg.get("thermometry", {}).get("dc_gain", 1.0))
-            s["dT_dc_K"] = sm["V_tc"] / g / seebeck_type_e(s["T"])
+            s["dT_dc_K"] = sm["V_tc"] / g / seebeck_type_e(s["T_sample"])
         else:
             s["dT_dc_K"] = None
 
@@ -313,11 +365,13 @@ class Supervisor:
         """Nach dem Quittieren: wer hingesehen hat, darf einen Temperatursprung bestätigen."""
         self._T_prev = None
         self._T_rej.clear()
+        self._Tc_prev = None
+        self._Tc_rej.clear()
 
     def _guard(self, s, epoch):
         sf, lim, al = self.safety, self.lim, self.alarms
         now = s["t"]
-        if s["T"] is None and sf.T is None:
+        if s["T"] is None and sf.T is None and sf.T_cell is None:
             self._note("stale_T", "No valid temperature: voltage limited to the 300 K window.")
         else:
             al.clear("stale_T")
@@ -507,7 +561,8 @@ class Supervisor:
                                      "I_T", "I_C", "D_set", "vmin", "vmax", "chamber", "chamber_ok", "T_raw",
                                      "T_status", "B_status", "on_T", "on_C", "set_T", "set_C", "T_eff",
                                      "sample", "X", "Y", "R", "theta", "f_ac", "V_ac", "T_ac_K",
-                                     "F_ac_N", "dT_dsigma_K_MPa", "phi_RC_deg", "theta_stack", "dT_dc_K", "G_used")}
+                                     "F_ac_N", "dT_dsigma_K_MPa", "phi_RC_deg", "theta_stack", "dT_dc_K", "G_used",
+                                     "T_cell", "R_cell", "T_sample")}
         row["force"] = self.force.info()
         self.publish({"type": "monitor", "data": row})
         self.history.append(row)
@@ -564,6 +619,7 @@ class Supervisor:
                                             "limiting voltage to the 300 K window.")
                 self.force.enabled = False      # kein tick_lock: der könnte es sein, der hängt
                 self.safety.T = None
+                self.safety.T_cell = None
                 try:
                     vmin, vmax = fc100.voltage_window(None)
                     self.safety.ac_off()
@@ -580,6 +636,8 @@ class Supervisor:
         self._stop.set()
         if self._thread:
             self._thread.join(timeout=5)
+        if self.recorder is not None:
+            self.recorder.stop()
         if self._log_file:
             self._log_file.close()
             self._log_file = None
