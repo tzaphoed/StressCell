@@ -20,6 +20,7 @@ import logging
 import os
 import secrets
 import sys
+import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -31,7 +32,7 @@ from fastapi import Body, FastAPI, HTTPException, Request, WebSocket, WebSocketD
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse  # noqa: E402
 from fastapi.staticfiles import StaticFiles                        # noqa: E402
 
-from core import advisor, fc100                                    # noqa: E402
+from core import advisor, fc100, settings                          # noqa: E402
 from core.config import load_config                                # noqa: E402
 from core.hub import Hub, clean                                    # noqa: E402
 from core.interpreter import StepError                             # noqa: E402
@@ -50,6 +51,7 @@ class State:
     cfg = None
     stack = None
     token = ""
+    reload_lock = threading.Lock()
 
 
 def setup(cfg_path=None, sim_speed=None):
@@ -83,8 +85,8 @@ async def lifespan(app):
     st.supervisor.start()
     log.info("backend up, %s", "SIMULATION" if st.simulated else "REAL INSTRUMENTS")
     yield
-    st.shutdown()
-    st.inst.close()
+    State.stack.shutdown()                  # nach einem Neustart aus den Einstellungen ist es ein anderer Stack
+    State.stack.inst.close()
 
 
 app = FastAPI(title="StressCell", lifespan=lifespan)
@@ -204,6 +206,48 @@ def help_page():
     if not p.exists():
         return HTMLResponse("<p>Handbuch nicht gefunden: docs/handbuch/handbuch.html</p>", status_code=404)
     return HTMLResponse(p.read_text(encoding="utf-8"))
+
+
+@app.get("/settings")
+def settings_get():
+    return {"values": settings.current(State.cfg),
+            "help": {k: v[2] for k, v in settings.SETTINGS.items()}, "file": str(State.cfg["paths"]["config"])}
+
+
+@app.post("/settings")
+def settings_post(body: dict = Body(...)):
+    """Schalter in config.toml schreiben und das Backend mit der neuen Konfiguration neu aufbauen.
+    Nur im Ruhezustand: kein Lauf, keine Sitzung, unter 1 V an beiden Stapeln."""
+    st = State.stack
+    try:
+        changes = settings.validate(body.get("values", {}))
+    except (TypeError, ValueError) as e:
+        raise HTTPException(400, str(e))
+    if st.runner.info()["state"] != "idle" or st.runner.session is not None:
+        raise HTTPException(409, "a sequence or Python session is running: stop it first")
+    try:
+        v = max(abs(st.inst.supply.voltage_now(c)) for c in ("tension", "compression"))
+    except Exception:
+        v = 0.0 if st.simulated else None
+    if v is None or v > 1.0:
+        raise HTTPException(409, "ramp both stacks to 0 V first (Drive auf 0), then change the settings")
+    with State.reload_lock:
+        settings.write(State.cfg["paths"]["config"], changes)
+        old = State.stack
+        old.supervisor.stop()
+        old.shutdown()
+        old.inst.close()
+        cfg = load_config(State.cfg["paths"]["config"])
+        new = build(cfg, publish=hub.publish)
+        try:
+            new.init_cap()
+        except Exception as e:
+            log.warning("capacitance meter not configured: %s", e)
+        new.supervisor.start()
+        State.cfg, State.stack = cfg, new
+    log.info("settings changed %s, backend rebuilt: %s", changes, "SIMULATION" if new.simulated else "REAL")
+    hub.publish({"type": "reload"})
+    return {"ok": True, "values": settings.current(cfg)}
 
 
 @app.get("/limits/curve")

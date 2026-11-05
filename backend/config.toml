@@ -15,6 +15,9 @@ sequence_dir = "../sequences"
 simulate = true          # true: Simulation, false: echte Geräte
 sim_speed = 10.0         # Zeitraffer der Simulation
 read_only = false        # true: nur lesen, jeder Setzbefehl wird abgelehnt
+ppms_read = true         # PPMS-Daten lesen (T, B, Kammer). false: kein PPMS, engstes Fenster (300 K, Kammer unbekannt)
+ppms_control = true      # StressCell darf T, B und Kammer stellen. false: das macht MultiVu, StressCell liest nur
+ppms_emergency_hold = true  # auch ohne Steuerung: Aufwärmen anhalten, wenn die Spannung nicht fällt
 
 [monitor]
 tick_s = 1.0             # Takt von Abfrage, Guard und Kraftregler
@@ -90,6 +93,7 @@ harmonic = 1
 time_constant_s = 1.0
 preamp_gain = 100.0       # Vorverstärker vor dem Lock-in (SR560), genau wie am Gerät eingestellt
 bridge_guard_frac = 0.03  # mit AH-Brücke: Detektion nicht näher als 3 % an k x 1 kHz
+G_drive_tol_V = 10.0      # dF/dD gilt nur bis so weit vom Offset, an dem es gemessen wurde
 
 [thermometry]
 dc_gain = 1.0             # Verstärkung vor dem Nanovoltmeter/DMM (1: direkt am Thermoelement)

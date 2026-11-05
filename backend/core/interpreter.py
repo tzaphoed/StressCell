@@ -154,7 +154,7 @@ class Context:
         row = {"wall": s.get("wall"), "t": s.get("t"), "label": label, "C_zero_pF": self.st.cal.C_zero}
         for k in ("T", "B", "F", "stress_MPa", "C_pF", "loss", "V_exc", "V_T", "V_C", "I_T", "I_C", "D_set",
                   "f_ac", "V_ac", "X", "Y", "R", "theta", "T_ac_K", "F_ac_N", "dT_dsigma_K_MPa",
-                  "phi_RC_deg", "theta_stack", "dT_dc_K"):
+                  "phi_RC_deg", "theta_stack", "dT_dc_K", "G_used"):
             row[k] = s.get(k)
         row.update(s.get("sample") or {})
         row.update({f"var_{k}": v for k, v in self.vars.items() if isinstance(v, (int, float))})
@@ -255,7 +255,8 @@ class Interpreter:
     def op_set_field(self, st):
         c = self.c
         B = c.val(st["B"])
-        c.safety.set_field(B, c.val(st.get("rate", self.lim["B_rate_max"])), st.get("persistent", False))
+        c.safety.set_field(B, c.val(st.get("rate", self.lim["B_rate_max"])), st.get("persistent", False),
+                           st.get("mode", "linear"))
         c.vars["_B_set"] = B
 
     def op_wait_field(self, st):
@@ -389,6 +390,11 @@ class Interpreter:
         c.safety.set_ac(c.val(st["f"]), c.val(st["V"]), simulated=c.st.simulated,
                         accept=st.get("accept") is True)
 
+    def op_lockin_setup(self, st):
+        c = self.c
+        c.safety.set_detection(c.val(st.get("harmonic", c.safety.ac_cfg.get("harmonic", 1))),
+                               c.val(st.get("tau", c.safety.ac_cfg.get("time_constant_s", 1.0))))
+
     def op_ac_off(self, st):
         self.c.safety.ac_off()
 
@@ -415,7 +421,13 @@ class Interpreter:
         G = abs((F[3] - F[2]) / (2.0 * step))      # zweite Schleife, die erste räumt die Hysterese
         if G <= 0:
             raise StepError("measure_gain: force does not follow the drive")
-        c.sup.G_table.append((s["T"], G))
+        G_min = float(c.sup.force.c.get("G_min", 0.02))
+        if G < G_min:
+            # Schritt innerhalb der Stapelhysterese oder Probe nicht im Kraftfluss: lieber kein G als ein
+            # falsches, das dT/dsigma um Größenordnungen verfälscht
+            raise StepError(f"measure_gain: dF/dD = {G:.4f} N/V is implausibly small (below {G_min} N/V). "
+                            f"Use a larger step than {step:g} V, or check that the sample carries force.")
+        c.sup.G_table.append((s["T"], G, D0))      # D0: gilt nur nahe diesem Offset
         c.log(f"measure_gain: dF/dD = {G:.4f} N/V at {s.get('T'):.2f} K")
 
     def op_frequency_sweep(self, st):

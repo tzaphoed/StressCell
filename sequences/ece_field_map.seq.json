@@ -57,7 +57,7 @@
     },
     {
      "op": "measure_gain",
-     "step": 2,
+     "step": 4,
      "settle": 5
     },
     {
@@ -72,7 +72,7 @@
     },
     {
      "op": "measure_gain",
-     "step": 2,
+     "step": 4,
      "settle": 5
     },
     {

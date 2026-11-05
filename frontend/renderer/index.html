@@ -31,11 +31,13 @@
     <nav id="sidebar" aria-label="Seiten">
       <button class="nav" data-page="setup" title="Checkliste vor dem ersten Einsatz, mit Live-Status">Start</button>
       <button class="nav active" data-page="cell" title="Live-Werte und Handsteuerung">Zelle</button>
+      <button class="nav" data-page="ece" title="Elastokalorik live: Frequenz und Offset ändern, Signal sofort sehen">Elastokalorik</button>
       <button class="nav" data-page="run" title="Sequenzen prüfen und starten">Messung</button>
       <button class="nav" data-page="editor" title="Sequenzen aus Blöcken bauen">Editor</button>
       <button class="nav" data-page="data" title="Gespeicherte Läufe ansehen">Daten</button>
       <button class="nav" data-page="limits" title="Spannungsfenster, Grenzwerte, Kalibrierung, Geräte">Grenzen</button>
       <button class="nav" data-page="calc" title="Rechenhilfen: AC-Strom, RC-Ecke, Spannung, Thermospannung">Rechner</button>
+      <button class="nav" data-page="settings" title="Simulation, Nur-Lesen, PPMS lesen und steuern">Einstellungen</button>
       <button class="nav" data-page="help" title="Handbuch mit Schritt-für-Schritt-Anleitung">Hilfe</button>
     </nav>
     <main id="content">
@@ -94,11 +96,66 @@
             <form class="row" data-op="set_temperature"><label>T [K]<input name="T" value="300"></label>
               <label title="Datenblatt: nie über 10 K/min, für genaue Kraft unter 4 K/min (AP006)">Rate [K/min]<input name="rate" value="5"></label><button>T setzen</button></form>
             <form class="row" data-op="set_field"><label>B [T]<input name="B" value="0"></label>
-              <label>Rate [T/min]<input name="rate" value="0.3"></label><button>B setzen</button></form>
+              <label>Rate [T/min]<input name="rate" value="0.3"></label>
+              <label title="linear: gerade Rampe. no_overshoot: ohne Überschwingen. oscillate: pendelt ein, kleinstes Restfeld, gut für B = 0">Anfahren<select name="mode"><option>linear</option><option>no_overshoot</option><option>oscillate</option></select></label>
+              <button>B setzen</button></form>
             <form class="row" data-op="ac_on"><label title="Anregungsfrequenz. Plateau mit dem Frequenzsweep suchen.">AC f [Hz]<input name="f" value="21"></label>
               <label title="Spitzenspannung AM STAPEL. Die Software rechnet Verstärkung und RC-Tiefpass heraus.">V Spitze [V]<input name="V" value="1"></label><button>AC an</button>
               <button type="button" data-step='{"op":"ac_off"}'>AC aus</button></form>
             <p class="muted small">D = V<sub>T</sub> − V<sub>C</sub>, positiv ist Zug. Jeder Befehl läuft durch dieselbe Grenzwertprüfung wie Sequenzen und Python.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Elastokalorik live ─────────────────────────────────────────── -->
+      <section id="page-ece" class="page">
+        <div id="ece-readouts" class="readouts"></div>
+        <div class="grid2">
+          <div class="card">
+            <h3>Anregung und Offset</h3>
+            <form class="row" data-op="ac_on"><label title="Anregungsfrequenz. Im Plateau ist ΔT flach und die Phase nahe 0° oder 180°.">f [Hz]<input name="f" value="40"></label>
+              <label title="Spitzenspannung am Stapel">V Spitze [V]<input name="V" value="0.5"></label><button class="primary">AC an / ändern</button>
+              <button type="button" data-step='{"op":"ac_off"}'>AC aus</button></form>
+            <form class="row" data-op="set_drive"><label title="Offset als Drive. Negativ ist Druck. Die Anregung läuft dabei weiter.">Offset D [V]<input name="D" value="-10"></label>
+              <label>Rampe [V/s]<input name="slew" value="1"></label><button>Offset setzen</button></form>
+            <form class="row" data-op="goto_force"><label title="Offset als Kraft, der Regler hält sie. Negativ ist Druck.">Offset F [N]<input name="F" value="-5"></label>
+              <label>Tol [N]<input name="tol" value="0.1"></label><button>Kraft halten</button>
+              <button type="button" data-step='{"op":"release_force"}'>Regler lösen</button></form>
+            <div class="row">
+              <button data-step='{"op":"measure_gain","step":4,"settle":10}' title="dF/dD bei diesem Offset und dieser Temperatur messen. Nötig für dT/dσ. Schaltet die Anregung dafür kurz nicht ein: vorher AC aus.">dF/dD hier messen</button>
+              <button id="ece-clear" type="button" title="Verläufe dieser Seite leeren">Plots leeren</button>
+            </div>
+            <form class="row" data-op="lockin_setup"><label title="Detektion bei h·f. 2f für Effekte, die nicht vom Vorzeichen der Dehnung abhängen.">Harmonische<input name="harmonic" value="1"></label>
+              <label title="Nach jeder Änderung etwa 5 τ warten, bis der Wert steht">τ Lock-in [s]<input name="tau" value="1"></label><button>Lock-in setzen</button></form>
+            <p class="muted small">So geht's: AC an, ΔT und Phase beobachten. Frequenz ändern und sehen, ob ΔT gleich bleibt (Plateau).
+              Offset ändern, die Anregung läuft weiter. Nach jeder Änderung rund 5 τ warten. dT/dσ erscheint nur, wenn dF/dD bei dieser
+              Temperatur (±2 K) und diesem Offset (±10 V) gemessen wurde: nach einem großen Offsetschritt AC aus, „dF/dD hier messen“, AC wieder an.</p>
+          </div>
+          <div class="card"><h3>ΔT und Phase über die Zeit</h3><div id="plot-ece-t" class="plot tall"></div></div>
+          <div class="card"><h3>ΔT gegen Offset-Kraft</h3><div id="plot-ece-f" class="plot"></div></div>
+          <div class="card"><h3>ΔT/V gegen Frequenz</h3><div id="plot-ece-fr" class="plot"></div>
+            <p class="muted small">Jeder Punkt ist der Mittelwert, solange f gleich blieb. Ein flacher Bereich ist das Plateau.</p></div>
+        </div>
+      </section>
+
+      <!-- ── Einstellungen ───────────────────────────────────────────── -->
+      <section id="page-settings" class="page">
+        <div class="grid2">
+          <div class="card">
+            <h3>Einstellungen</h3>
+            <form id="settings-form"></form>
+            <div class="row"><button id="settings-save" class="primary">Übernehmen und neu starten</button><span id="settings-msg" class="muted small"></span></div>
+            <p class="muted small">Schreibt in config.toml und baut das Backend neu auf. Geht nur ohne laufende Sequenz und mit weniger als 1 V an beiden Stapeln.
+              Grenzwerte und Geräte bleiben in config.toml von Hand.</p>
+          </div>
+          <div class="card">
+            <h3>Was die PPMS-Schalter bedeuten</h3>
+            <table>
+              <tr><td>PPMS lesen + steuern</td><td>Normalfall. StressCell stellt T, B, Kammer und kennt sie.</td></tr>
+              <tr><td>lesen, nicht steuern</td><td>T, B, Kammer an MultiVu stellen. StressCell liest mit, der Guard führt das Fenster nach. Befehle an das PPMS werden abgelehnt.</td></tr>
+              <tr><td>nicht lesen</td><td>Keine Temperatur, keine Kammer: engstes Fenster, −20 … +50 V je Stapel. Für Tests bei Raumtemperatur ohne PPMS.</td></tr>
+              <tr><td>Notfall-Halt</td><td>Fällt die Spannung beim Aufwärmen nicht, hält StressCell die Temperatur an, auch wenn es sonst nicht steuert.</td></tr>
+            </table>
           </div>
         </div>
       </section>

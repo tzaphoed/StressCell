@@ -31,6 +31,8 @@ log = logging.getLogger("stresscell.safety")
 
 CHAMBER_MODES = ("seal", "purge_seal", "vent_seal", "pump_continuous", "vent_continuous", "high_vacuum")
 CHAMBER_MOVING = ("purge_seal", "vent_seal", "pump_continuous", "vent_continuous", "high_vacuum")
+T_MODES = ("fast_settle", "no_overshoot")                 # MultiPyVu temperature.approach_mode
+B_MODES = ("linear", "no_overshoot", "oscillate")         # MultiPyVu field.approach_mode
 
 
 class LimitError(Exception):
@@ -308,8 +310,19 @@ class Safety:
         with self.lock:
             self.epoch += 1
 
+    def _cryo_control(self, what):
+        m = self.cfg.get("mode", {})
+        if not m.get("ppms_read", True):
+            raise LimitError(f"{what} refused: PPMS is switched off in the settings")
+        if not m.get("ppms_control", True):
+            raise LimitError(f"{what} refused: PPMS control is switched off, set it at MultiVu")
+
     def hold_temperature(self, T):
-        """Letztes Mittel, wenn die Spannung nicht fällt: nicht weiter aufwärmen."""
+        """Letztes Mittel, wenn die Spannung nicht fällt: nicht weiter aufwärmen. Läuft auch bei
+        abgeschalteter PPMS-Steuerung, solange ppms_emergency_hold nicht false ist."""
+        m = self.cfg.get("mode", {})
+        if not m.get("ppms_read", True) or not m.get("ppms_emergency_hold", True):
+            return
         if not self.read_only and T is not None:
             self.inst.cryo.set_temperature(T, self.lim["T_rate_max"] / 2.0)
 
@@ -383,9 +396,24 @@ class Safety:
         return not self.ac_V or (vmin <= v - self.ac_V and v + self.ac_V <= vmax)
 
     # ── Kryostat ─────────────────────────────────────────────────────────
+    def set_detection(self, harmonic, tau):
+        """Lock-in: Harmonische und Zeitkonstante. Keine Hochspannung, aber im Nur-Lese-Modus gesperrt."""
+        with self.lock:
+            self._w("lock-in setup")
+            if self.inst.lockin is None:
+                raise LimitError("no lock-in configured")
+            h, tau = int(_num(harmonic, "harmonic")), _num(tau, "time constant")
+            if not 1 <= h <= 9 or not 1e-5 <= tau <= 3e4:
+                raise LimitError("harmonic 1 ... 9, time constant 10 us ... 30 ks")
+            self.inst.lockin.set_detection(h, tau)
+            self.ac_cfg["harmonic"], self.ac_cfg["time_constant_s"] = h, tau
+
     def set_temperature(self, T, rate, mode="fast_settle"):
         with self.lock:
             self._w("set temperature")
+            self._cryo_control("set temperature")
+            if mode not in T_MODES:
+                raise LimitError(f"temperature mode {mode}: use {' | '.join(T_MODES)}")
             T, rate = _num(T, "temperature"), _num(rate, "rate")
             lim = self.lim
             if not lim["T_min"] <= T <= lim["T_max"]:
@@ -402,19 +430,25 @@ class Safety:
                                      f"{vmin:.1f} ... {vmax:.1f} V. Reduce the drive first.")
         self.inst.cryo.set_temperature(T, rate, mode)
 
-    def set_field(self, B, rate, persistent=False):
+    def set_field(self, B, rate, persistent=False, mode="linear"):
+        """mode: linear | no_overshoot | oscillate. oscillate fährt um das Ziel herum und hält das
+        Restfeld des supraleitenden Magneten klein, vor allem für Messungen bei B = 0."""
         with self.lock:
             self._w("set field")
+            self._cryo_control("set field")
+            if mode not in B_MODES:
+                raise LimitError(f"field mode {mode}: use {' | '.join(B_MODES)}")
             B, rate = _num(B, "field"), _num(rate, "rate")
             if abs(B) > self.lim["B_max"]:
                 raise LimitError(f"|B| = {abs(B):g} T above {self.lim['B_max']} T")
             if not 0 < rate <= self.lim["B_rate_max"]:
                 raise LimitError(f"rate {rate:g} T/min outside 0 ... {self.lim['B_rate_max']} T/min")
-        self.inst.cryo.set_field(B, rate, persistent=bool(persistent))
+        self.inst.cryo.set_field(B, rate, mode=mode, persistent=bool(persistent))
 
     def set_chamber(self, mode):
         with self.lock:
             self._w("set chamber")
+            self._cryo_control("set chamber")
             if mode not in CHAMBER_MODES:
                 raise LimitError(f"unknown chamber mode {mode}")
             if mode in CHAMBER_MOVING:

@@ -70,3 +70,6 @@ code{font:12px var(--mono);background:var(--bg-secondary);padding:0 4px;border-r
 #calc-form input{width:96px}
 #help-frame{width:100%;height:calc(100vh - 90px);border:1px solid var(--border);border-radius:var(--radius);background:#fff}
 .ro[title]{cursor:help}
+.switch{flex-direction:row;align-items:baseline;gap:8px;font-size:13px;color:var(--text-primary);margin:0 0 10px;flex-wrap:wrap}
+.switch .muted{flex-basis:100%;margin-left:24px}
+#settings-form label:not(.switch){margin-bottom:10px;max-width:220px}

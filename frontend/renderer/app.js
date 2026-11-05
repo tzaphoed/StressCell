@@ -81,6 +81,7 @@ function showMonitor(d) {
   $('#window-text').textContent = d.vmin == null ? '–' : `${d.vmin.toFixed(1)} … ${d.vmax.toFixed(1)} V`
   const f = d.force
   $('#loop-text').textContent = f?.enabled ? `an, ${f.target.toFixed(2)} N, G ${f.G.toFixed(2)} N/V` : 'aus'
+  pushEce(d)
   draw()
 }
 
@@ -164,6 +165,7 @@ function connect() {
     else if (m.type === 'run') { showRun(m.data); if (m.data.state === 'running') for (const k in points) delete points[k] }
     else if (m.type === 'point') addPoint(m.data)
     else if (m.type === 'log') { const l = $('#run-log'); l.textContent += m.line + '\n'; l.scrollTop = l.scrollHeight }
+    else if (m.type === 'reload') { toast('Backend mit neuen Einstellungen neu gestartet, Seite lädt neu'); setTimeout(() => location.reload(), 1500) }
   }
 }
 
@@ -178,6 +180,8 @@ function show(page) {
   if (page === 'setup') loadChecklist()
   if (page === 'limits') loadCalibration()
   if (page === 'calc') runCalc()
+  if (page === 'settings') loadSettings()
+  if (page === 'ece') { lastEce = 0; drawEce() }
   window.dispatchEvent(new Event('resize'))
   draw()
 }
@@ -199,13 +203,71 @@ $$('form[data-op]').forEach(f => f.onsubmit = e => {
   e.preventDefault()
   const st = { op: f.dataset.op }
   for (const i of f.querySelectorAll('input')) if (i.value !== '') st[i.name] = Number(i.value)
+  for (const s of f.querySelectorAll('select')) st[s.name] = s.value
   step(st)
+})
+
+// Elastokalorik live
+const ECE_RO = [
+  ['T_ac_K', 'ΔT', 'mK', 3, 1e3], ['theta_stack', 'Phase am Stapel', '°', 1, 1], ['f_ac', 'f', 'Hz', 1, 1],
+  ['V_ac', 'V Spitze', 'V', 2, 1], ['F', 'Offset F', 'N', 2, 1], ['stress_MPa', 'σ', 'MPa', 1, 1], ['D_set', 'Offset D', 'V', 1, 1],
+  ['G_used', 'dF/dD', 'N/V', 3, 1], ['F_ac_N', 'F_ac', 'N', 3, 1], ['dT_dsigma_K_MPa', 'dT/dσ', 'mK/MPa', 3, 1e3], ['T', 'T', 'K', 2, 1],
+]
+$('#ece-readouts').innerHTML = ECE_RO.map(([k, n, u]) =>
+  `<div class="ro" id="ece-${k}"><div class="k">${n}</div><div><span class="v">–</span><span class="u">${u}</span></div></div>`).join('')
+const ece = { t: [], dT: [], th: [], F: [], f: [] }
+const fbin = new Map()            // f -> [Summe ΔT/V, Anzahl]
+let lastEce = 0
+function pushEce(d) {
+  for (const [k, , , dec, mul] of ECE_RO) {
+    const v = d[k]
+    document.querySelector(`#ece-${k} .v`).textContent = v == null ? '–' : (v * mul).toFixed(dec)
+  }
+  if (d.T_ac_K == null || !d.V_ac) return
+  ece.t.push((d.t - (t0 ?? d.t)) / 60); ece.dT.push(d.T_ac_K * 1e3); ece.th.push(d.theta_stack); ece.F.push(d.F); ece.f.push(d.f_ac)
+  if (ece.t.length > 4000) for (const k in ece) ece[k].splice(0, 400)
+  const b = fbin.get(d.f_ac) || [0, 0]; b[0] += d.T_ac_K * 1e3 / d.V_ac; b[1] += 1; fbin.set(d.f_ac, b)
+  drawEce()
+}
+function drawEce() {
+  const now = performance.now()
+  if (!$('#page-ece').classList.contains('active') || now - lastEce < 1000) return
+  lastEce = now
+  Plotly.react('plot-ece-t', [
+    { x: ece.t, y: ece.dT, name: 'ΔT [mK]', line: { color: css('--highlight') } },
+    { x: ece.t, y: ece.th, name: 'Phase [°]', yaxis: 'y2', line: { color: css('--accent-text'), width: 1 } },
+  ], { ...layout('ΔT [mK]'), yaxis2: { title: 'Phase [°]', overlaying: 'y', side: 'right', range: [-180, 180], gridcolor: 'rgba(0,0,0,0)' } }, CONFIG)
+  Plotly.react('plot-ece-f', [{ x: ece.F, y: ece.dT, mode: 'markers', marker: { size: 5, color: ece.t, colorscale: 'Viridis' } }],
+    { ...layout('ΔT [mK]', 'Offset F [N]'), showlegend: false }, CONFIG)
+  const fs = [...fbin.keys()].sort((a, b) => a - b)
+  Plotly.react('plot-ece-fr', [{ x: fs, y: fs.map(f => fbin.get(f)[0] / fbin.get(f)[1]), mode: 'markers+lines', line: { color: css('--success') } }],
+    { ...layout('ΔT/V [mK/V]', 'f [Hz]'), xaxis: { ...layout('', 'f [Hz]').xaxis, type: 'log' }, showlegend: false }, CONFIG)
+}
+$('#ece-clear').onclick = () => { for (const k in ece) ece[k].length = 0; fbin.clear(); lastEce = 0; drawEce() }
+
+// Einstellungen
+const SETTING_LABEL = { simulate: 'Simulation', sim_speed: 'Zeitraffer der Simulation', read_only: 'Nur lesen',
+  ppms_read: 'PPMS-Daten lesen', ppms_control: 'PPMS steuern (T, B, Kammer)', ppms_emergency_hold: 'Notfall-Halt beim Aufwärmen' }
+const loadSettings = guarded(async () => {
+  const s = await get('/settings')
+  $('#settings-form').innerHTML = Object.entries(s.values).map(([k, v]) => typeof v === 'boolean'
+    ? `<label class="switch" title="${esc(s.help[k])}"><input type="checkbox" name="${k}" ${v ? 'checked' : ''}> ${SETTING_LABEL[k] ?? k}<span class="muted small">${esc(s.help[k])}</span></label>`
+    : `<label title="${esc(s.help[k])}">${SETTING_LABEL[k] ?? k}<input name="${k}" value="${v}"></label>`).join('')
+  $('#settings-msg').textContent = s.file
+})
+$('#settings-save').onclick = guarded(async () => {
+  const values = {}
+  for (const i of $('#settings-form').querySelectorAll('input')) values[i.name] = i.type === 'checkbox' ? i.checked : Number(i.value)
+  if (!values.simulate && !confirm('Echte Geräte: wirklich umschalten? Erst nach Ersatzkondensator und check_instruments.py.')) return
+  $('#settings-msg').textContent = 'starte neu …'
+  await post('/settings', { values })
 })
 
 // Inbetriebnahme
 const STATE_TEXT = { ok: 'erledigt', open: 'offen', warn: 'prüfen', info: 'Info' }
 const CHAPTER = { 'Software starten': 'software', 'Erster Kontakt': 'erster-kontakt', 'Anschlussbox': 'anschlussbox',
-  'Kalibrierung': 'kalibrierung', 'AC-Kette': 'ac-kette', 'Vakuum': 'vakuum', 'Probe': 'probe', 'Grenzwerte': 'grenzwerte' }
+  'Kalibrierung': 'kalibrierung', 'AC-Kette': 'ac-kette', 'Vakuum': 'vakuum', 'Probe': 'probe', 'Grenzwerte': 'grenzwerte',
+  'PPMS': 'ppms' }
 const loadChecklist = guarded(async () => {
   const { items } = await get('/setup/checklist')
   $('#checklist').replaceChildren(...items.map(i => {

@@ -19,7 +19,8 @@ import re
 import threading
 import time
 
-from .base import CHANNELS, CapacitanceMeter, Cryostat, Instruments, LockIn, PiezoSupply, SampleMeter
+from .base import (CHANNELS, CapacitanceMeter, Cryostat, Instruments, LockIn, NoCryostat, PiezoSupply,
+                   SampleMeter)
 
 log = logging.getLogger("stresscell.real")
 
@@ -646,6 +647,8 @@ def build_sample(cfg, pool, cryo):
         if n == "none":
             continue
         if n == "ppms_bridge":
+            if isinstance(cryo, NoCryostat):
+                raise RuntimeError("sample = ppms_bridge needs PPMS data: switch ppms_read on")
             out.append(PPMSBridge(cryo, i["ppms_bridge_channel"], i["ppms_bridge_current_uA"]))
         elif n == "k2182a":
             out.append(meters.K2182A(pool.get(i["voltmeter"]), float(i.get("voltmeter_nplc", 1.0))))
@@ -683,7 +686,8 @@ def build_real(cfg, pool: VisaPool | None = None, cryo=None) -> Instruments:
         raise ValueError(f"unknown supply {sup} ({', '.join(SUPPLIES)})")
 
     cap = build_cap(cfg, pool)
-    cryo = cryo or PPMS(i["multipyvu_host"], i["multipyvu_port"])
+    if cryo is None:
+        cryo = PPMS(i["multipyvu_host"], i["multipyvu_port"]) if cfg["mode"].get("ppms_read", True) else NoCryostat()
     sample = build_sample(cfg, pool, cryo)
     lockin = build_lockin(cfg, pool) if cfg.get("ac", {}).get("enabled", False) else None
     return Instruments(supply, cap, cryo, sample, lockin=lockin)

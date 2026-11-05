@@ -37,7 +37,20 @@ def checklist(st) -> list[dict]:
     else:
         out.append(_item("mode", "Betriebsart", OK, "Echte Geräte, Schreiben erlaubt.", "", "Erster Kontakt"))
 
-    resp = {"Temperatur": last.get("T"), "Kapazität": last.get("C_pF"), "Netzteil": last.get("set_C")}
+    if not mode.get("ppms_read", True):
+        out.append(_item("ppms", "PPMS", WARN, "PPMS-Daten aus: keine Temperatur, keine Kammer.",
+                         "Die Software rechnet dann mit dem engsten Fenster: 300 K und Kammer unbekannt, "
+                         "also -20 bis +50 V je Stapel. Für Tieftemperatur PPMS-Daten einschalten.", "PPMS"))
+    elif not mode.get("ppms_control", True):
+        out.append(_item("ppms", "PPMS", INFO, "PPMS wird gelesen, gesteuert wird an MultiVu.",
+                         "T, B und Kammer an MultiVu stellen. Der Guard führt das Fenster trotzdem nach. "
+                         + ("Notfall-Halt beim Aufwärmen ist an." if mode.get("ppms_emergency_hold", True)
+                            else "Notfall-Halt ist AUS: fällt die Spannung nicht, wärmt der Kryostat weiter."), "PPMS"))
+    else:
+        out.append(_item("ppms", "PPMS", OK, "PPMS wird gelesen und von StressCell gesteuert.", "", "PPMS"))
+
+    resp = {"Temperatur": last.get("T") if mode.get("ppms_read", True) else 0.0,
+            "Kapazität": last.get("C_pF"), "Netzteil": last.get("set_C")}
     missing = [k for k, v in resp.items() if v is None]
     out.append(_item("devices", "Geräte antworten", OK if not missing else OPEN,
                      "Alle antworten." if not missing else "Keine Antwort von: " + ", ".join(missing),

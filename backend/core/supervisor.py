@@ -96,7 +96,7 @@ class Supervisor:
         self.last: dict = {}
         self.history: list[dict] = []
         self.on_guard_abort = lambda reason: None
-        self.G_table: list[tuple[float, float]] = []   # (T, dF/dD) aus measure_gain
+        self.G_table: list[tuple] = []   # (T, dF/dD, D) aus measure_gain, D darf fehlen
         self._T_prev = None
         self._F_prev = None
         self._D_prev = None
@@ -126,18 +126,18 @@ class Supervisor:
             self._F_prev = None
             return self.cal.tare(C_pF, T, persist)
 
-    def G_at(self, T):
-        """dF/dD bei T, nur in der Nähe eines gemessenen Punkts. G ändert sich mit T um
-        den Faktor 5, ein alter Wert wäre im Sweep schlicht falsch."""
+    def G_at(self, T, D=None):
+        """dF/dD bei T und Offset D, nur nahe einem gemessenen Punkt: innerhalb von 2 K und
+        ac.G_drive_tol_V. G ändert sich mit T um den Faktor 5 und am Übergang auch mit dem
+        Offset, ein alter Wert wäre im Sweep schlicht falsch."""
         if T is None or not self.G_table:
             return None
-        pts = sorted(self.G_table)
-        lo, hi = pts[0][0] - 2.0, pts[-1][0] + 2.0
-        if not lo <= T <= hi:
+        tol = float(self.cfg.get("ac", {}).get("G_drive_tol_V", 10.0))
+        pts = sorted((p[0], p[1]) for p in self.G_table
+                     if abs(p[0] - T) <= 2.0 and (D is None or len(p) < 3 or p[2] is None or abs(p[2] - D) <= tol))
+        if not pts:
             return None
-        xs = [p[0] for p in pts]
-        ys = [p[1] for p in pts]
-        return float(np.interp(T, xs, ys))
+        return float(np.interp(T, [p[0] for p in pts], [p[1] for p in pts]))
 
     # ── Takt ─────────────────────────────────────────────────────────────
     def tick(self) -> dict:
@@ -197,7 +197,7 @@ class Supervisor:
         """Temperaturamplitude aus der Thermospannung. Die Kraftamplitude lässt sich am FC100 nicht
         direkt lesen, das Kapazitätsgerät ist zu langsam: sie kommt aus dF/dD (op measure_gain)."""
         out = {"T_ac_K": None, "F_ac_N": None, "dT_dsigma_K_MPa": None, "phi_RC_deg": None,
-               "theta_stack": None}
+               "theta_stack": None, "G_used": None}
         if s.get("R") is None or s.get("T") is None or not s.get("V_ac"):
             return out
         if s.get("f_ac") and s.get("theta") is not None:
@@ -206,7 +206,8 @@ class Supervisor:
             out["theta_stack"] = (s["theta"] - out["phi_RC_deg"] + 180.0) % 360.0 - 180.0
         gain = self.cfg.get("ac", {}).get("preamp_gain", 1.0)
         out["T_ac_K"] = math.sqrt(2.0) * s["R"] / gain / seebeck_type_e(s["T"])
-        G = self.G_at(s["T"])
+        G = self.G_at(s["T"], s.get("D_set"))
+        out["G_used"] = G
         if G:
             out["F_ac_N"] = G * s["V_ac"]
             out["dT_dsigma_K_MPa"] = out["T_ac_K"] / (out["F_ac_N"] / self.area)
@@ -506,7 +507,7 @@ class Supervisor:
                                      "I_T", "I_C", "D_set", "vmin", "vmax", "chamber", "chamber_ok", "T_raw",
                                      "T_status", "B_status", "on_T", "on_C", "set_T", "set_C", "T_eff",
                                      "sample", "X", "Y", "R", "theta", "f_ac", "V_ac", "T_ac_K",
-                                     "F_ac_N", "dT_dsigma_K_MPa", "phi_RC_deg", "theta_stack", "dT_dc_K")}
+                                     "F_ac_N", "dT_dsigma_K_MPa", "phi_RC_deg", "theta_stack", "dT_dc_K", "G_used")}
         row["force"] = self.force.info()
         self.publish({"type": "monitor", "data": row})
         self.history.append(row)

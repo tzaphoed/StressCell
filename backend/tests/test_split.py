@@ -330,3 +330,44 @@ def test_check_instruments_lists_open_points(cfg):
     c["instruments"]["supply"] = "split"
     found = "\n".join(check_instruments.config_findings(c))
     assert "bleeder_fitted" in found and "gain_verified" in found and "simulate" in found
+
+
+# ── Live: Frequenz und Offset bei laufender Anregung ─────────────────────
+def test_field_and_temperature_modes(stack):
+    run_steps(stack, {"op": "set_field", "B": 1.0, "rate": 0.3, "mode": "oscillate"})
+    with pytest.raises(Exception, match="field mode"):
+        run_steps(stack, {"op": "set_field", "B": 1.0, "mode": "wobble"})
+    with pytest.raises(Exception, match="temperature mode"):
+        run_steps(stack, {"op": "set_temperature", "T": 250, "rate": 2, "mode": "warp"})
+
+
+def test_lockin_setup_changes_detection(stack):
+    run_steps(stack, {"op": "lockin_setup", "harmonic": 2, "tau": 0.3})
+    assert stack.inst.lockin.harmonic == 2 and stack.safety.ac_cfg["time_constant_s"] == 0.3
+    with pytest.raises(Exception):
+        run_steps(stack, {"op": "lockin_setup", "harmonic": 0})
+
+
+def test_offset_can_change_while_ac_runs_and_gain_follows_offset(split_stack):
+    st = split_stack
+    run_steps(st, {"op": "output", "on": True}, {"op": "set_drive", "D": -8}, {"op": "wait_voltage"},
+              {"op": "measure_gain", "step": 4, "settle": 5}, {"op": "ac_on", "f": 40, "V": 0.5})
+    s = st.supervisor.tick()
+    assert s["G_used"] is not None and s["dT_dsigma_K_MPa"] is not None
+    run_steps(st, {"op": "set_drive", "D": -12}, {"op": "wait_voltage"})     # Offset ändern, AC läuft weiter
+    s = st.supervisor.tick()
+    assert st.safety.ac_V == 0.5 and s["G_used"] is not None                 # 4 V weg: G gilt noch
+    run_steps(st, {"op": "set_drive", "D": -20}, {"op": "wait_voltage"})     # 12 V weg: G nicht mehr
+    s = st.supervisor.tick()
+    assert s["G_used"] is None and s["dT_dsigma_K_MPa"] is None and s["T_ac_K"] is not None
+    run_steps(st, {"op": "ac_on", "f": 80, "V": 0.5})                        # Frequenz live ändern
+    assert st.safety.ac_f == 80
+
+
+def test_measure_gain_refuses_a_step_inside_the_hysteresis(split_stack):
+    st = split_stack
+    st.world.p["backlash_V"] = 20.0                     # Spiel größer als der Schritt
+    run_steps(st, {"op": "output", "on": True}, {"op": "set_drive", "D": -8}, {"op": "wait_voltage"})
+    with pytest.raises(Exception, match="implausibly small|does not follow"):
+        run_steps(st, {"op": "measure_gain", "step": 2, "settle": 5})
+    assert st.supervisor.G_table == []

@@ -151,8 +151,9 @@ class Lab:
     def wait_temperature(self, tol=None, hold=None, timeout=None):
         self._step("wait_temperature", tol=tol, hold=hold, timeout=timeout)
 
-    def set_field(self, B, rate=None, persistent=None):
-        self._step("set_field", B=B, rate=rate, persistent=persistent)
+    def set_field(self, B, rate=None, persistent=None, mode=None):
+        """mode: linear | no_overshoot | oscillate"""
+        self._step("set_field", B=B, rate=rate, persistent=persistent, mode=mode)
 
     def wait_field(self, tol=None, timeout=None):
         self._step("wait_field", tol=tol, timeout=timeout)
@@ -180,6 +181,9 @@ class Lab:
 
     def ac_on(self, f, V, accept=None):
         self._step("ac_on", f=f, V=V, accept=accept)
+
+    def lockin_setup(self, harmonic=None, tau=None):
+        self._step("lockin_setup", harmonic=harmonic, tau=tau)
 
     def ac_off(self):
         self._step("ac_off")

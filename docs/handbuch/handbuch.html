@@ -129,11 +129,13 @@ zentrale Grenzwertprüfung, egal ob der Befehl aus der Oberfläche, einer Sequen
   <tr><th style="width:16%">Seite</th><th>Wozu</th></tr>
   <tr><td class="dev">Start</td><td>Inbetriebnahme-Checkliste mit Live-Status. Klick auf einen Punkt öffnet das Kapitel hier.</td></tr>
   <tr><td class="dev">Zelle</td><td>Live-Werte, Verläufe, Handsteuerung. Jede Anzeige erklärt sich, wenn die Maus darüber steht.</td></tr>
+  <tr><td class="dev">Elastokalorik</td><td>Live: AC an, Frequenz und Offset ändern, ΔT, Phase und dT/dσ sofort sehen. Plots ΔT über die Zeit, gegen die Offset-Kraft und ΔT/V gegen f (Plateau).</td></tr>
   <tr><td class="dev">Messung</td><td>Sequenz wählen, prüfen, starten, pausieren. Protokoll und Messpunkte des laufenden Laufs.</td></tr>
   <tr><td class="dev">Editor</td><td>Sequenzen aus Blöcken bauen, speichern, trocken laufen lassen.</td></tr>
   <tr><td class="dev">Daten</td><td>Frühere Läufe ansehen, Achsen frei wählen, CSV herunterladen.</td></tr>
   <tr><td class="dev">Grenzen</td><td>Spannungsfenster mit Arbeitspunkt, Kalibrierung mit Formel und Tabelle über T, Geräte und AC-Kette, aktive Grenzwerte.</td></tr>
   <tr><td class="dev">Rechner</td><td>AC-Strom, größte Amplitude, RC-Ecke und Phase, Spannung in MPa, Dehnung, Thermospannung in mK, Fenster bei T.</td></tr>
+  <tr><td class="dev">Einstellungen</td><td>Simulation, Nur lesen, PPMS lesen, PPMS steuern, Notfall-Halt. Schreibt config.toml und startet das Backend neu.</td></tr>
   <tr><td class="dev">Hilfe</td><td>Dieses Handbuch.</td></tr>
 </table>
 
@@ -847,6 +849,20 @@ Die Seite „Grenzen“ zeigt, was gerade gilt.</p>
   <tr><td class="mono">[instruments]</td><td>Welche Geräte, welche Adressen, und je Stapel <span class="mono">[instruments.tension]</span> und <span class="mono">[instruments.compression]</span></td></tr>
 </table>
 
+<h2 id="ppms">PPMS: lesen, steuern, Notfall-Halt</h2>
+<p>StressCell spricht das PPMS über MultiPyVu an. Auf der Seite „Einstellungen“ (oder in <span class="mono">[mode]</span>) gibt es drei Schalter:</p>
+<table>
+  <tr><th style="width:24%">Schalter</th><th style="width:34%">An</th><th>Aus</th></tr>
+  <tr><td class="mono">ppms_read</td><td>T, B und Kammer werden jede Sekunde gelesen. Das Fenster folgt der Temperatur.</td><td>Kein PPMS. Die Software kennt weder T noch Kammer und nimmt das engste Fenster an: 300 K und Druckwechsel, also −20 bis +50 V je Stapel. Gedacht für Tests ohne Kryostat.</td></tr>
+  <tr><td class="mono">ppms_control</td><td>StressCell darf T, B und Kammer stellen (Oberfläche, Sequenz, Python).</td><td>Gesteuert wird an MultiVu. StressCell liest weiter, der Guard führt das Fenster nach, Befehle ans PPMS werden abgelehnt. Nie gleichzeitig eine MultiVu-Sequenz und StressCell steuern lassen.</td></tr>
+  <tr><td class="mono">ppms_emergency_hold</td><td>Fällt die Spannung beim Aufwärmen nicht (Quelle antwortet nicht), hält StressCell die Temperatur an, auch wenn es sonst nicht steuert.</td><td>Kein Eingriff ins PPMS, auch im Notfall nicht. Nur, wenn jemand daneben steht.</td></tr>
+</table>
+<p>Anfahrarten: Temperatur <span class="mono">fast_settle</span> oder <span class="mono">no_overshoot</span>, Feld <span class="mono">linear</span>,
+<span class="mono">no_overshoot</span> oder <span class="mono">oscillate</span>. Oscillate pendelt ins Ziel und hält das Restfeld des supraleitenden Magneten
+klein, gut für Messungen bei B = 0. Das Feld kann persistent gefahren werden (<span class="mono">"persistent": true</span>).</p>
+<p>Die Schalter „Simulation“ und „Nur lesen“ sitzen auf derselben Seite. Umschalten geht nur ohne laufende Sequenz und mit weniger als 1 V an
+beiden Stapeln. Das Backend wird dabei mit der neuen Konfiguration neu aufgebaut, die Seite lädt neu.</p>
+
 <h2>Beispiel Aufbau A (Standard ohne RP100)</h2>
 <pre class="code">[ac]
 source = "lockin"
@@ -985,7 +1001,26 @@ Bei Ikeda: τ<sub>θ</sub> = 0,5 ms, τ<sub>i</sub> = 21 ms, C<sub>θ</sub>/C<su
 adiabatischen Wert. Die Phase zählt gegen die Spannung am Stapel. Deshalb gibt es die Spalte <span class="mono">theta_stack</span>, in der
 der RC-Tiefpass aus R2 und Stapel schon herausgerechnet ist.</p>
 
-<h2>Ablauf</h2>
+<h2>Live auf der Seite „Elastokalorik“</h2>
+<ol class="steps">
+  <li>Ausgänge an. Offset setzen: als Drive („Offset setzen“, z. B. −8 V) oder als Kraft („Kraft halten“, z. B. −5 N, der Regler hält sie).</li>
+  <li>AC noch aus: <b>„dF/dD hier messen“</b>. Es misst mit ±4 V um den Offset. Kommt eine Meldung „implausibly small“, war der Schritt
+      innerhalb der Stapelhysterese oder die Probe trägt keine Kraft: größeren Schritt im Python- oder Sequenzbefehl nehmen.</li>
+  <li><b>AC an</b> mit f und V. ΔT, Phase am Stapel, F<sub>ac</sub> und dT/dσ erscheinen sofort, der Plot ΔT über die Zeit läuft mit.</li>
+  <li><b>Frequenz ändern:</b> neue f eintragen, „AC an / ändern“. Die Anregung springt auf die neue Frequenz, bei steigender
+      Frequenz wird zuerst die Amplitude gesenkt. Der Plot „ΔT/V gegen Frequenz“ sammelt je f einen Mittelwert: Der flache Teil ist das Plateau.</li>
+  <li><b>Offset ändern:</b> neuen Drive oder neue Kraft eintragen. Die Anregung läuft weiter, solange DC plus AC-Spitze im Fenster bleiben.
+      Der Plot „ΔT gegen Offset-Kraft“ zeigt, wie sich das Signal mit der Vorspannung ändert. Am Übergang ist das der interessante Teil.</li>
+  <li>Nach jeder Änderung rund 5 Lock-in-Zeitkonstanten warten. τ und Harmonische stellst du im Feld „Lock-in setzen“.</li>
+</ol>
+<div class="box warn">
+  <h4>Wann dT/dσ verschwindet</h4>
+  <p>dT/dσ braucht dF/dD von dieser Temperatur (±2 K) und diesem Offset (±10 V, <span class="mono">[ac] G_drive_tol_V</span>). Am martensitischen
+  Übergang ändert sich die Steifigkeit der Probe mit der Vorspannung, ein altes G wäre falsch. Nach einem großen Offsetschritt: AC aus,
+  „dF/dD hier messen“, AC wieder an. ΔT selbst wird immer angezeigt.</p>
+</div>
+
+<h2>Ablauf für eine ganze Messung</h2>
 <ol class="steps">
   <li>Temperatur einstellen, warten bis stabil. Vorspannung per Kraftregler („Kraft anfahren“, z. B. −5 N) oder mit dem Drive.</li>
   <li><b>dF/dD messen</b> bei dieser Temperatur. Ohne diesen Wert gibt es kein F<sub>ac</sub> und kein dT/dσ. G ändert sich mit T um den Faktor 5,

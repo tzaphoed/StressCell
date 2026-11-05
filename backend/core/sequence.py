@@ -10,7 +10,8 @@ Vergleiche, min, max, abs, log, exp, sqrt, Variablen und die Messwerte T, B, F, 
 
     {"op": "set_temperature", "T": <K>, "rate": <K/min>, "mode": "fast_settle"}
     {"op": "wait_temperature", "tol": <K>, "hold": <s>, "timeout": <s>}
-    {"op": "set_field", "B": <T>, "rate": <T/min>, "persistent": false}
+    {"op": "set_field", "B": <T>, "rate": <T/min>, "persistent": false, "mode": "linear"}
+                                                          # mode: linear | no_overshoot | oscillate
     {"op": "wait_field", "tol": <T>, "timeout": <s>}
     {"op": "set_chamber", "mode": "purge_seal"}
     {"op": "output", "on": true}
@@ -29,6 +30,7 @@ Vergleiche, min, max, abs, log, exp, sqrt, Variablen und die Messwerte T, B, F, 
     {"op": "ac_on", "f": <Hz>, "V": <V Spitze am Stapel>, "accept": false}
                                                           # accept: Frequenz nahe k x Brückenfrequenz trotzdem
     {"op": "ac_off"}
+    {"op": "lockin_setup", "harmonic": 1, "tau": <s>}     # Detektion des Lock-ins
     {"op": "frequency_sweep", "from": <Hz>, "to": <Hz>, "points": <n>, "settle": <s>, "n": <Anzahl>,
      "dt": <s>, "label": "<text>"}                        # logarithmisch, sucht das Plateau
     {"op": "temperature_sweep", "to": <K>, "rate": <K/min>, "dt": <s>, "label": "<text>"}
@@ -50,7 +52,7 @@ FORMAT = "stresscell-sequence"
 OPS: dict[str, tuple[tuple, tuple]] = {
     "set_temperature": (("T",), ("rate", "mode")),
     "wait_temperature": ((), ("tol", "hold", "timeout")),
-    "set_field": (("B",), ("rate", "persistent")),
+    "set_field": (("B",), ("rate", "persistent", "mode")),
     "wait_field": ((), ("tol", "timeout")),
     "set_chamber": (("mode",), ()),
     "output": (("on",), ()),
@@ -64,6 +66,7 @@ OPS: dict[str, tuple[tuple, tuple]] = {
     "measure": ((), ("n", "dt", "label")),
     "force_sweep": (("from", "to", "points"), ("tol", "hold", "timeout", "n", "dt", "label")),
     "measure_gain": ((), ("step", "settle")),
+    "lockin_setup": ((), ("harmonic", "tau")),
     "ac_on": (("f", "V"), ("accept",)),
     "ac_off": ((), ()),
     "frequency_sweep": (("from", "to", "points"), ("settle", "n", "dt", "label", "accept")),

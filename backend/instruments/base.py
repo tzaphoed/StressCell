@@ -90,6 +90,26 @@ class Cryostat(ABC):
         pass
 
 
+class NoCryostat(Cryostat):
+    """Kein PPMS: keine Temperatur, kein Feld, keine Kammer. Die Software rechnet dann mit dem
+    engsten Fenster (300 K und unbekannte Kammer) und lehnt jede Steuerung des Kryostaten ab."""
+
+    def identify(self):
+        return "no cryostat (PPMS data switched off)"
+
+    def read(self):
+        return {"T": None, "T_status": None, "B": None, "B_status": None, "chamber": None}
+
+    def set_temperature(self, T, rate_K_min, mode="fast_settle"):
+        raise IOError("PPMS is switched off in the settings")
+
+    def set_field(self, B, rate_T_min, mode="linear", persistent=False):
+        raise IOError("PPMS is switched off in the settings")
+
+    def set_chamber(self, mode):
+        raise IOError("PPMS is switched off in the settings")
+
+
 class SampleMeter(ABC):
     """Optionale Messgröße an der Probe, z.B. Widerstand über die WP101-Plattform."""
 
