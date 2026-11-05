@@ -37,6 +37,7 @@ from datetime import datetime
 import numpy as np
 
 from instruments.base import CHANNELS
+from instruments.sources import dc_channels
 
 from . import fc100
 from .control import ForceLoop
@@ -195,9 +196,14 @@ class Supervisor:
     def _elastocaloric(self, s) -> dict:
         """Temperaturamplitude aus der Thermospannung. Die Kraftamplitude lässt sich am FC100 nicht
         direkt lesen, das Kapazitätsgerät ist zu langsam: sie kommt aus dF/dD (op measure_gain)."""
-        out = {"T_ac_K": None, "F_ac_N": None, "dT_dsigma_K_MPa": None}
+        out = {"T_ac_K": None, "F_ac_N": None, "dT_dsigma_K_MPa": None, "phi_RC_deg": None,
+               "theta_stack": None}
         if s.get("R") is None or s.get("T") is None or not s.get("V_ac"):
             return out
+        if s.get("f_ac") and s.get("theta") is not None:
+            # Phase gegen die Spannung am Stapel statt gegen den Oszillator: R2 und C hinken nach
+            out["phi_RC_deg"] = self.safety.ac_chain.phase_deg(s["f_ac"])
+            out["theta_stack"] = (s["theta"] - out["phi_RC_deg"] + 180.0) % 360.0 - 180.0
         gain = self.cfg.get("ac", {}).get("preamp_gain", 1.0)
         out["T_ac_K"] = math.sqrt(2.0) * s["R"] / gain / seebeck_type_e(s["T"])
         G = self.G_at(s["T"])
@@ -273,6 +279,13 @@ class Supervisor:
             sf.expect_on = sf.expect_on or bool(s["on_T"] and s["on_C"])
         if self.inst.lockin is not None:
             s.update(self._elastocaloric(s))
+        sm = s.get("sample") or {}
+        if sm.get("V_tc") is not None and s["T"] is not None:
+            # Thermospannung vom Nanovoltmeter, für Laden und Entladen (volles Delta-T_ad)
+            g = float(self.cfg.get("thermometry", {}).get("dc_gain", 1.0))
+            s["dT_dc_K"] = sm["V_tc"] / g / seebeck_type_e(s["T"])
+        else:
+            s["dT_dc_K"] = None
 
     # ── Guard ────────────────────────────────────────────────────────────
     def _abort(self, why):
@@ -399,8 +412,11 @@ class Supervisor:
                 # Drive erzeugt die Kraft: zurück. Sonst nur eine Rampe anhalten, die sie vergrößert.
                 # Bei thermischer Kraft und D = 0 gibt es nichts zu tun: nicht gegenschieben.
                 D = 0.9 * Dn if F * Dn > 0 else Dn
-                if getattr(sf.inst.supply, "compression_only", False):
+                dc = dc_channels(sf.inst.supply)
+                if dc == ("compression",):
                     target = (0.0, -D)
+                elif dc == ("tension",):
+                    target = (D, 0.0)
                 else:
                     cm = (s["V_T"] + s["V_C"]) / 2.0
                     target = (cm + D / 2.0, cm - D / 2.0)
@@ -490,7 +506,7 @@ class Supervisor:
                                      "I_T", "I_C", "D_set", "vmin", "vmax", "chamber", "chamber_ok", "T_raw",
                                      "T_status", "B_status", "on_T", "on_C", "set_T", "set_C", "T_eff",
                                      "sample", "X", "Y", "R", "theta", "f_ac", "V_ac", "T_ac_K",
-                                     "F_ac_N", "dT_dsigma_K_MPa")}
+                                     "F_ac_N", "dT_dsigma_K_MPa", "phi_RC_deg", "theta_stack", "dT_dc_K")}
         row["force"] = self.force.info()
         self.publish({"type": "monitor", "data": row})
         self.history.append(row)

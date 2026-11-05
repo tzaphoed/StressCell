@@ -10,6 +10,7 @@ import copy
 import time
 
 from instruments import sim
+from instruments.sources import dc_channels
 
 from .calibration import ForceCalibration
 from .clock import RealClock, VirtualClock
@@ -114,6 +115,7 @@ class Stack:
         if s.get("T") is not None:
             scfg["T_start"] = s["T"]
         inst, w = sim.build_sim(clock, scfg, noise=False)
+        inst.supply.dc_channels = dc_channels(self.inst.supply)   # gleiche Verdrahtung wie echt
         cal = copy.deepcopy(self.cal)
         cal._tare_file = None
         w.cal = cal                      # die Sim antwortet mit den Kalibrierdaten der echten Zelle
@@ -155,6 +157,8 @@ def build(cfg, publish=lambda ev: None, speed=None, virtual=False, noise=True, s
         else:
             clock = RealClock(speed if speed is not None else cfg["mode"].get("sim_speed", 1.0))
         inst, w = sim.build_sim(clock, cfg.get("sim", {}), noise=noise, seed=seed)
+        from instruments.real import dc_channels_from_cfg
+        inst.supply.dc_channels = dc_channels_from_cfg(cfg)     # die Sim kennt die echte Verdrahtung
         st = Stack(cfg, inst, clock, True, publish, world=w)
         if getattr(st.cal, "model", "linear") != "linear":
             # Die Sim antwortet wie die echte Zelle laut Blatt. Eine eigene Kopie: ein Tare im

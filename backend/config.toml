@@ -73,18 +73,26 @@ default_tol_N = 0.05
 
 [ac]
 # AC-Elastokalorik. Die Anregung liegt auf einer Stapelgruppe, der Offset auf der anderen.
+# Empfohlener Aufbau ohne RP100 (Handbuch, Aufbau A): SR860 SINE OUT -> R2 = 240 Ohm -> Zugstapel.
 enabled = true
+source = "lockin"         # lockin: Oszillator des Lock-ins | generator: Funktionsgenerator + externe Referenz
 channel = "tension"       # Zugstapel: 3,1 uF, halber Strom gegenüber der Druckgruppe
-C_F = 3.1e-6              # Datenblatt, 300 K
-gain = 25.0               # V Spitze am Stapel je V rms am Oszillatorausgang. Mit dem Oszilloskop messen!
+C_F = 3.1e-6              # Datenblatt, 300 K. Fällt beim Abkühlen, siehe Handbuch "RC-Korrektur"
+gain = 1.414              # V Spitze am Stapel je V rms am Ausgang bei tiefer Frequenz. Direkt: 1,414.
+                          # Mit Tegam 2350: 70,7. Mit dem Oszilloskop am Stapel messen!
+series_R_ohm = 290.0      # R2 plus 50 Ohm Ausgang. Ergibt den RC-Tiefpass, die Software rechnet ihn heraus.
 gain_verified = false     # ohne true läuft an echten Geräten keine Anregung
-V_max = 20.0              # Spitzenspannung
+V_max = 2.5               # größte Spitzenspannung am Stapel. Für NiMnSn reichen 0,3 bis 2 V
 current_max_A = 5e-3      # Datenblatt: 10 mA nicht überschreiten. Halber Wert als Reserve
 f_min_Hz = 1.0
 f_max_Hz = 5000.0
 harmonic = 1
 time_constant_s = 1.0
-preamp_gain = 100.0       # Vorverstärker vor dem Lock-in
+preamp_gain = 100.0       # Vorverstärker vor dem Lock-in (SR560), genau wie am Gerät eingestellt
+bridge_guard_frac = 0.03  # mit AH-Brücke: Detektion nicht näher als 3 % an k x 1 kHz
+
+[thermometry]
+dc_gain = 1.0             # Verstärkung vor dem Nanovoltmeter/DMM (1: direkt am Thermoelement)
 
 [sample]
 name = "sample"
@@ -97,31 +105,74 @@ excitation_Vrms = 1.0
 calibration = "FC100_0260.toml"   # deine Zelle, Blatt 0260-FC100-b. cell_example.toml ist die lineare Testzelle
 
 [instruments]
-supply = "rp100"         # rp100 | keithley2400 | lockin_amp
-cap = "e4980al"          # e4980al | ah2550a | ah2700a
+# Welche Geräte im Schrank stehen, entscheidet hier. Alles Weitere steht im Handbuch,
+# Kapitel "Geräte" und "Konfiguration". check_instruments.py fragt jedes Gerät nur ab.
+#
+# supply:  rp100         beide Stapel am RP100 (Razorbill), entlädt selbst
+#          split         jede Stapelgruppe eigene Quelle, siehe [instruments.tension] und
+#                        [instruments.compression] unten. Der Weg ohne RP100.
+#          keithley2400  zwei Keithley 2400 (alte Variante, braucht Kurzschlussbox)
+#          lockin_amp    Lock-in-Aux + Verstärker auf Druck, Zug nur AC (alte Variante)
+supply = "split"
+# cap:     e4980al | e4980a | hp4284a | ah2500a | ah2550a | ah2700a | lockin_cap
+cap = "e4980al"
 cryo = "multipyvu"
-sample = "none"          # none | ppms_bridge
-
-rp100 = "ASRL5::INSTR"
-rp100_ch_tension = 1     # Razorbill-Schnellstart: üblicherweise 1 = Zug, 2 = Druck
-rp100_ch_compression = 2
-
-keithley_tension = "GPIB0::24::INSTR"
-keithley_compression = "GPIB0::25::INSTR"
-keithley_compliance_A = 6e-3
-# true erst eintragen, wenn die Kurzschlussbox verbaut ist: Docs Kapitel "Keithley statt RP100".
-keithley_discharge_box_fitted = false
-
+# sample:  none | ppms_bridge | k2182a | dmm344xx, auch als Liste, z. B. ["ppms_bridge", "k2182a"]
+sample = "none"
+# lockin_model: sr860 | sr865 | sr830 | sr7265 | sr7270
+lockin_model = "sr860"
 lockin = "GPIB0::4::INSTR"
-amp_dc_gain = 50.0       # Hochspannungsverstärker am Aux-Ausgang, Tegam 2350: fest 50
-amp_discharge_box_fitted = false
-amp_gain_verified = false   # Verstärkung am Stapel gemessen?
+lockin_vrms_max = 2.0     # SR860: 2, SR830/SR7265: 5. Mit R2 hält das den Strom unter 10 mA
+
+# Funktionsgenerator statt Lock-in-Oszillator ([ac] source = "generator"):
+# generator_model: 33500b | 33600a | 33210a | 33220a. SYNC-Ausgang an den Referenzeingang.
+generator_model = "33500b"
+generator = "USB0::0x0957::0x2C07::MY00000000::INSTR"
+generator_vlimit_V = 3.0  # 33500B/33600A: harte Ausgangsgrenze im Gerät, V Spitze
+generator_vrms_max = 2.0
 
 capmeter = "GPIB0::28::INSTR"
+capmeter_model = "sr830"  # nur für cap = lockin_cap: sr830 | sr860
+lockin_cap_gain = "1M"    # Stromeingang 1M (1e6 V/A) oder 100M
+lockin_cap_phase_deg = 0.0
+
+voltmeter = "GPIB0::7::INSTR"   # für sample = k2182a oder dmm344xx
+voltmeter_nplc = 1.0
 
 multipyvu_host = "127.0.0.1"
 multipyvu_port = 27183   # Vorgabe von MultiPyVu 3.8
 ppms_bridge_channel = 1
 ppms_bridge_current_uA = 1000.0
+
+# alte Varianten
+rp100 = "ASRL5::INSTR"
+rp100_ch_tension = 1     # Razorbill-Schnellstart: üblicherweise 1 = Zug, 2 = Druck
+rp100_ch_compression = 2
+keithley_tension = "GPIB0::24::INSTR"
+keithley_compression = "GPIB0::25::INSTR"
+keithley_compliance_A = 6e-3
+keithley_discharge_box_fitted = false
+amp_dc_gain = 50.0       # Hochspannungsverstärker am Aux-Ausgang, Tegam 2350: fest 50
+amp_discharge_box_fitted = false
+amp_gain_verified = false
+
+[instruments.tension]
+# Zugstapel: Adern rot (+) und weiß (-), Datenblatt Tabelle 1.
+# source: rp100 | smu | hv_amp | ac_only | grounded
+source = "ac_only"        # Aufbau A: nur AC über R2, Gleichspannung 0 V
+bleeder_R_ohm = 1.0e6     # Entladewiderstand parallel zum Stapel, >= 500 V Spannungsfestigkeit
+bleeder_fitted = false    # erst true, wenn er wirklich eingebaut ist
+
+[instruments.compression]
+# Druckstapel: Adern braun (+) und blau (-).
+source = "smu"
+model = "keithley2400"    # keithley2400 | keithley2410 | keithley2420 | keithley2450 | keithley2600 | b2900
+address = "GPIB0::24::INSTR"
+channel = 1               # keithley2600: "a" oder "b", b2900: 1 oder 2
+compliance_A = 6e-3       # Hardware-Strombegrenzung der SMU
+series_R_ohm = 15000.0    # R1 in der Anschlussbox, wie im RP100
+bleeder_R_ohm = 1.0e6
+bleeder_fitted = false
+# Für hv_amp zusätzlich: gain (V am Stapel je V Aux), gain_verified, aux (Nummer), lockin_model
 
 [sim]

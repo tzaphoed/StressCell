@@ -22,6 +22,10 @@ def cfg(tmp_path):
     for name in ("cell_example.toml", "FC100_0260.toml"):
         (c["paths"]["calibration_dir"] / name).write_bytes((ROOT.parent / "calibrations" / name).read_bytes())
     c["capacitance"]["calibration"] = "cell_example.toml"   # lineare Sim-Zelle, eigene Tests für #0260
+    # Die Grundtests laufen mit zwei DC-Kanälen (RP100) und der Ikeda-Kette. Die geteilte
+    # Verdrahtung ohne RP100 hat eigene Tests (test_split.py).
+    c["instruments"]["supply"] = "rp100"
+    c["ac"].update(gain=25.0, series_R_ohm=0.0, V_max=20.0)
     c["paths"]["config"] = tmp_path / "config.toml"
     c["limits"]["slew_default_V_s"] = 10.0      # Tests laufen sonst minutenlang durch die Rampen
     c["limits"]["sealed_V_max"] = 400.0         # eigener Test für die Vorgabe

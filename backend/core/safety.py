@@ -22,8 +22,10 @@ import math
 import threading
 
 from instruments.base import CHANNELS
+from instruments.sources import dc_channels
 
 from . import fc100
+from .acchain import AcChain
 
 log = logging.getLogger("stresscell.safety")
 
@@ -71,6 +73,7 @@ class Safety:
         self.expect_on = False
         self.outputs_seen = False        # nach einem Neustart zählt, was die Ausgänge gerade tun
         self.ac_cfg = cfg.get("ac", {})
+        self.ac_chain = AcChain.from_cfg(self.ac_cfg)
         self.ac_f = 0.0
         self.ac_V = 0.0                  # Spitzenspannung am Stapel
         self.ac_fault: str | None = None
@@ -190,8 +193,17 @@ class Safety:
         s.set_voltage("compression", v_c)
 
     def split(self, D, vmin, vmax):
-        if getattr(self.inst.supply, "compression_only", False):
+        """Drive auf die Stapel verteilen. Trägt nur eine Gruppe Gleichspannung (die andere ist
+        ac_only oder grounded), bekommt sie den ganzen Drive."""
+        dc = dc_channels(self.inst.supply)
+        if dc == ("compression",):
             return 0.0, -D
+        if dc == ("tension",):
+            return D, 0.0
+        if not dc:
+            if abs(D) > 1e-9:
+                raise ValueError("no stack is wired for DC voltage, the drive stays at 0 V")
+            return 0.0, 0.0
         return fc100.split_drive(D, vmin, vmax)
 
     def set_drive(self, D, slew=None, epoch=None):
@@ -305,7 +317,23 @@ class Safety:
     def ac_current(self, f, V):
         return 2.0 * math.pi * f * self.ac_cfg["C_F"] * V
 
-    def set_ac(self, f, V, simulated=False):
+    def bridge_conflict(self, f) -> str | None:
+        """Die AH-Brücke regt den Kraftsensor mit bis zu 15 V bei ihrer Messfrequenz an, das koppelt
+        in die Thermoelementdrähte. Liegt die Detektionsfrequenz h*f nahe einem Vielfachen davon,
+        geht das Übersprechen durch den Lock-in-Filter. Rückgabe: Begründung oder None."""
+        cap = str(self.cfg.get("instruments", {}).get("cap", ""))
+        if not cap.startswith("ah"):
+            return None
+        fb = 1000.0 if cap != "ah2700a" else float(self.cfg.get("capacitance", {}).get("frequency_Hz", 1000.0))
+        frac = float(self.ac_cfg.get("bridge_guard_frac", 0.03))
+        fd = f * int(self.ac_cfg.get("harmonic", 1))
+        for k in (1, 2, 3):
+            if abs(fd - k * fb) <= frac * k * fb:
+                return (f"detection at {fd:g} Hz is within {frac*100:.0f} % of {k} x {fb:g} Hz, where the "
+                        f"{cap.upper()} excites the force sensor: crosstalk into the thermocouple")
+        return None
+
+    def set_ac(self, f, V, simulated=False, accept=False):
         with self.lock:
             self._hv("AC drive")
             c = self.ac_cfg
@@ -317,6 +345,9 @@ class Safety:
             f, V = _num(f, "frequency"), _num(V, "amplitude")
             if not c["f_min_Hz"] <= f <= c["f_max_Hz"]:
                 raise LimitError(f"frequency {f:g} Hz outside {c['f_min_Hz']:g} ... {c['f_max_Hz']:g} Hz")
+            why = self.bridge_conflict(f)
+            if why and accept is not True:
+                raise LimitError(f"{why}. Choose another frequency, or accept = true.")
             if not 0 < V <= c["V_max"]:
                 raise LimitError(f"amplitude {V:g} V outside 0 ... {c['V_max']:g} V")
             I = self.ac_current(f, V)

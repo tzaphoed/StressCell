@@ -153,7 +153,8 @@ class Context:
     def record(self, s: dict, label: str):
         row = {"wall": s.get("wall"), "t": s.get("t"), "label": label, "C_zero_pF": self.st.cal.C_zero}
         for k in ("T", "B", "F", "stress_MPa", "C_pF", "loss", "V_exc", "V_T", "V_C", "I_T", "I_C", "D_set",
-                  "f_ac", "V_ac", "X", "Y", "R", "theta", "T_ac_K", "F_ac_N", "dT_dsigma_K_MPa"):
+                  "f_ac", "V_ac", "X", "Y", "R", "theta", "T_ac_K", "F_ac_N", "dT_dsigma_K_MPa",
+                  "phi_RC_deg", "theta_stack", "dT_dc_K"):
             row[k] = s.get(k)
         row.update(s.get("sample") or {})
         row.update({f"var_{k}": v for k, v in self.vars.items() if isinstance(v, (int, float))})
@@ -385,7 +386,8 @@ class Interpreter:
     # ── AC-Elastokalorik ─────────────────────────────────────────────────
     def op_ac_on(self, st):
         c = self.c
-        c.safety.set_ac(c.val(st["f"]), c.val(st["V"]), simulated=c.st.simulated)
+        c.safety.set_ac(c.val(st["f"]), c.val(st["V"]), simulated=c.st.simulated,
+                        accept=st.get("accept") is True)
 
     def op_ac_off(self, st):
         self.c.safety.ac_off()
@@ -426,9 +428,13 @@ class Interpreter:
         label = st.get("label", "frequency sweep")
         cfg = c.safety.ac_cfg
         for f in fs:
+            why = c.safety.bridge_conflict(float(f))
+            if why and st.get("accept") is not True:
+                c.log(f"frequency_sweep: {f:.4g} Hz skipped, {why}")
+                continue
             # Oben begrenzt der Strom. Dann Amplitude senken statt abzubrechen, R / V_ac bleibt vergleichbar.
             v = min(V, 0.99 * cfg["current_max_A"] / (2.0 * math.pi * float(f) * cfg["C_F"]))
-            c.safety.set_ac(float(f), v, simulated=c.st.simulated)
+            c.safety.set_ac(float(f), v, simulated=c.st.simulated, accept=st.get("accept") is True)
             c.sleep(settle)
             self.op_measure({"n": st.get("n", 3), "dt": st.get("dt", 1), "label": label})
 

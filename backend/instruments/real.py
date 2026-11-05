@@ -217,7 +217,7 @@ class AHBridge(CapacitanceMeter):
         if self.model == "2700A":
             self.io.write(f"FR {frequency_Hz:.1f}")
         elif abs(frequency_Hz - 1000.0) > 1e-6:
-            log.warning("AH2550A measures at 1 kHz only, ignoring %g Hz", frequency_Hz)
+            log.warning("AH%s measures at 1 kHz only, ignoring %g Hz", self.model, frequency_Hz)
         self.io.write(f"V {excitation_Vrms:.4f}")
 
     @classmethod
@@ -237,10 +237,12 @@ class AHBridge(CapacitanceMeter):
 
 
 class E4980AL(CapacitanceMeter):
-    def __init__(self, io):
+    """Keysight E4980A/E4980AL und HP/Agilent 4284A, gleicher Befehlssatz bis auf FUNC:IMP."""
+
+    def __init__(self, io, model="e4980al"):
         self.io = io
         io.write("FORM ASC")
-        io.write("FUNC:IMP:TYPE CPD")
+        io.write("FUNC:IMP CPD" if model == "hp4284a" else "FUNC:IMP:TYPE CPD")
         io.write("TRIG:SOUR INT")
         io.write(":INIT:CONT ON")
 
@@ -271,18 +273,22 @@ class SR860(LockIn):
 
     TAU = [m * 10.0 ** e for e in range(-6, 5) for m in (1.0, 3.0)]
 
-    def __init__(self, io, gain, vrms_max=2.0):
+    def __init__(self, io, gain=None, vrms_max=2.0, chain=None, reference="internal"):
+        from core.acchain import AcChain
         self.io = io
-        self.gain = float(gain)
+        self.chain = chain if chain is not None else AcChain(gain=float(gain))
+        self.gain = self.chain.gain
         self.vrms_max = float(vrms_max)
         self.v = 0.0
         io.write("SOFF 0")      # ein alter Sinus-Offset ginge sonst verstärkt auf den Stapel
+        if reference != "internal":
+            io.write("RSRC 1")  # externe Referenz, z. B. SYNC eines Generators
 
     def identify(self):
         return self.io.query("*IDN?")
 
     def set_drive(self, frequency_Hz, V_stack_peak):
-        v = float(V_stack_peak) / self.gain
+        v = self.chain.out_rms(frequency_Hz, float(V_stack_peak)) if V_stack_peak else 0.0
         if not 0.0 <= v <= self.vrms_max:
             raise ValueError(f"SR860: {v} V rms outside 0 ... {self.vrms_max}")
         if v == 0.0:
@@ -493,40 +499,225 @@ class PPMSBridge(SampleMeter):
         return {"R_ohm": R}
 
 
-def build_real(cfg) -> Instruments:
+# ── Zusammenbau ──────────────────────────────────────────────────────────
+SUPPLIES = ("rp100", "keithley2400", "lockin_amp", "split")
+CHANNEL_SOURCES = ("rp100", "smu", "hv_amp", "ac_only", "grounded")
+SMU_MODELS = ("keithley2400", "keithley2410", "keithley2420", "keithley2450", "keithley2600", "b2900")
+LOCKIN_MODELS = ("sr860", "sr865", "sr830", "sr7265", "sr7270")
+GENERATOR_MODELS = ("33500b", "33600a", "33210a", "33220a")
+CAP_MODELS = ("e4980al", "e4980a", "hp4284a", "ah2500a", "ah2550a", "ah2700a", "lockin_cap")
+SAMPLE_MODELS = ("none", "ppms_bridge", "k2182a", "dmm344xx")
+
+
+class VisaPool:
+    """Eine Sitzung je Adresse: zwei Kanäle eines Geräts oder Lock-in für Anregung und Aux
+    teilen sich Sitzung und Bus-Lock."""
+
+    def __init__(self, opener=None):
+        self.opener = opener or (lambda addr, **kw: Visa(addr, **kw))
+        self.open: dict[str, object] = {}
+
+    def get(self, address, **kw):
+        if address not in self.open:
+            self.open[address] = self.opener(address, **kw)
+        return self.open[address]
+
+
+def _ch_cfg(cfg, ch) -> dict:
+    return cfg["instruments"].get(ch, {}) or {}
+
+
+def dc_channels_from_cfg(cfg) -> tuple:
+    """Welche Stapel Gleichspannung tragen, ohne ein Gerät zu öffnen. Für Sim und Trockenlauf."""
     i = cfg["instruments"]
-    li_io = None
-    if i["supply"] == "rp100":
-        io = Visa(i["rp100"], read_termination="\r\n", write_termination="\n")
-        supply = RP100(io, i["rp100_ch_tension"], i["rp100_ch_compression"])
-    elif i["supply"] == "keithley2400":
+    sup = i.get("supply", "rp100")
+    if sup == "lockin_amp":
+        return ("compression",)
+    if sup == "split":
+        return tuple(c for c in CHANNELS if _ch_cfg(cfg, c).get("source", "grounded") not in ("ac_only", "grounded"))
+    return CHANNELS
+
+
+def _check_bleeder(c, cc):
+    if not cc.get("bleeder_fitted", False) or not cc.get("bleeder_R_ohm"):
+        raise RuntimeError(
+            f"{c} stack: source '{cc.get('source')}' does not discharge the stacks when it is off or "
+            "unplugged. Razorbill requires a discharge path during every temperature change. Fit the "
+            f"bleeder resistor (1 MOhm, >= 500 V) across the {c} stack, enter bleeder_R_ohm and set "
+            f"bleeder_fitted = true under [instruments.{c}].")
+
+
+def _smu_channel(pool, cc):
+    from . import sources
+    model = cc.get("model", "keithley2400")
+    comp = float(cc.get("compliance_A", 6e-3))
+    addr = cc["address"]
+    if model in ("keithley2400", "keithley2410", "keithley2420"):
+        return sources.Keithley2400Channel(pool.get(addr), comp)
+    if model == "keithley2450":
+        return sources.Keithley2450Channel(pool.get(addr), comp)
+    if model == "keithley2600":
+        return sources.Keithley2600Channel(pool.get(addr), cc.get("channel", "a"), comp, close_io=False)
+    if model == "b2900":
+        return sources.B2900Channel(pool.get(addr), cc.get("channel", 1), comp, close_io=False)
+    raise ValueError(f"unknown SMU model {model} ({', '.join(SMU_MODELS)})")
+
+
+def build_split_supply(cfg, pool):
+    from . import sources
+    i = cfg["instruments"]
+    srcs, bleed, rp = {}, {}, None
+    for c in CHANNELS:
+        cc = _ch_cfg(cfg, c)
+        kind = cc.get("source", "grounded")
+        if kind not in CHANNEL_SOURCES:
+            raise ValueError(f"[instruments.{c}] source = {kind}: use one of {', '.join(CHANNEL_SOURCES)}")
+        if kind != "rp100":
+            _check_bleeder(c, cc)
+            bleed[c] = float(cc["bleeder_R_ohm"])
+        if kind == "rp100":
+            if rp is None:
+                rp = RP100(pool.get(cc.get("address", i.get("rp100")), read_termination="\r\n",
+                                    write_termination="\n"), i.get("rp100_ch_tension", 1),
+                           i.get("rp100_ch_compression", 2))
+            srcs[c] = sources.RP100Channel(rp, c)
+        elif kind == "smu":
+            srcs[c] = _smu_channel(pool, cc)
+        elif kind == "hv_amp":
+            if not cc.get("gain_verified", False):
+                raise RuntimeError(f"{c} stack: measure the amplifier gain at the stack with a scope, "
+                                   f"enter gain and set gain_verified = true under [instruments.{c}]")
+            srcs[c] = sources.AuxAmpChannel(pool.get(cc.get("address", i.get("lockin"))), cc["gain"],
+                                            cc.get("lockin_model", i.get("lockin_model", "sr860")), cc.get("aux"))
+        else:
+            srcs[c] = sources.FixedZeroChannel(kind)
+    return sources.SplitSupply(srcs, bleed)
+
+
+def build_lockin(cfg, pool):
+    """AC-Anregung und Detektion. ac_source = lockin: Oszillator des Lock-ins.
+    ac_source = generator: Funktionsgenerator, Lock-in auf externer Referenz."""
+    from core.acchain import AcChain
+    from . import lockins
+    i, ac = cfg["instruments"], cfg.get("ac", {})
+    chain = AcChain.from_cfg(ac)
+    model = i.get("lockin_model", "sr860")
+    if model not in LOCKIN_MODELS:
+        raise ValueError(f"unknown lock-in {model} ({', '.join(LOCKIN_MODELS)})")
+    external = ac.get("source", i.get("ac_source", "lockin")) == "generator"
+    ref = "external" if external else "internal"
+    io = pool.get(i["lockin"])
+    if model in ("sr860", "sr865"):
+        det = SR860(io, chain=chain, vrms_max=float(i.get("lockin_vrms_max", 2.0)), reference=ref)
+    elif model == "sr830":
+        det = lockins.SR830(io, chain, float(i.get("lockin_vrms_max", 5.0)), ref, str(i["lockin"]).upper().startswith("GPIB"))
+    else:
+        det = lockins.SR7265(io, chain, float(i.get("lockin_vrms_max", 5.0)), ref)
+    if not external:
+        return det
+    gm = i.get("generator_model", "33500b")
+    if gm not in GENERATOR_MODELS:
+        raise ValueError(f"unknown generator {gm} ({', '.join(GENERATOR_MODELS)})")
+    gen = lockins.FunctionGenerator(pool.get(i["generator"]), gm, i.get("generator_vlimit_V"))
+    return lockins.ExternalRefDrive(gen, det, chain, float(i.get("generator_vrms_max", 3.5)))
+
+
+def build_cap(cfg, pool):
+    from . import lockins
+    i = cfg["instruments"]
+    m = i["cap"]
+    if m in ("e4980al", "e4980a", "hp4284a"):
+        return E4980AL(pool.get(i["capmeter"]), m)
+    if m in ("ah2500a", "ah2550a", "ah2700a"):
+        return AHBridge(pool.get(i["capmeter"], timeout_ms=10000), m[2:].upper())
+    if m == "lockin_cap":
+        return lockins.LockInCap(pool.get(i["capmeter"]), i.get("capmeter_model", "sr830"),
+                                 i.get("lockin_cap_gain", "1M"), float(i.get("lockin_cap_phase_deg", 0.0)))
+    raise ValueError(f"unknown capacitance meter {m} ({', '.join(CAP_MODELS)})")
+
+
+def build_sample(cfg, pool, cryo):
+    from . import meters
+    i = cfg["instruments"]
+    names = i.get("sample", "none")
+    names = [names] if isinstance(names, str) else list(names)
+    out = []
+    for n in names:
+        if n == "none":
+            continue
+        if n == "ppms_bridge":
+            out.append(PPMSBridge(cryo, i["ppms_bridge_channel"], i["ppms_bridge_current_uA"]))
+        elif n == "k2182a":
+            out.append(meters.K2182A(pool.get(i["voltmeter"]), float(i.get("voltmeter_nplc", 1.0))))
+        elif n == "dmm344xx":
+            out.append(meters.DMM344xx(pool.get(i["voltmeter"]), float(i.get("voltmeter_nplc", 1.0))))
+        else:
+            raise ValueError(f"unknown sample meter {n} ({', '.join(SAMPLE_MODELS)})")
+    if not out:
+        return None
+    return out[0] if len(out) == 1 else meters.MultiSample(out)
+
+
+def build_real(cfg, pool: VisaPool | None = None, cryo=None) -> Instruments:
+    i = cfg["instruments"]
+    pool = pool or VisaPool()
+    sup = i["supply"]
+    if sup == "rp100":
+        supply = RP100(pool.get(i["rp100"], read_termination="\r\n", write_termination="\n"),
+                       i["rp100_ch_tension"], i["rp100_ch_compression"])
+    elif sup == "keithley2400":
         if not i.get("keithley_discharge_box_fitted", False):
             raise RuntimeError("Keithley operation needs the shorting box: stacks must never be left "
                                "open. Fit it, then set keithley_discharge_box_fitted = true.")
-        supply = Keithley2400Pair(Visa(i["keithley_tension"]), Visa(i["keithley_compression"]),
+        supply = Keithley2400Pair(pool.get(i["keithley_tension"]), pool.get(i["keithley_compression"]),
                                   i["keithley_compliance_A"])
-    elif i["supply"] == "lockin_amp":
+    elif sup == "lockin_amp":
         if not i.get("amp_discharge_box_fitted", False) or not i.get("amp_gain_verified", False):
             raise RuntimeError("Amplifier operation needs the shorting box, a current limit and a gain "
                                "measured at the stack: then set amp_discharge_box_fitted and "
                                "amp_gain_verified to true.")
-        li_io = Visa(i["lockin"])
-        supply = CompressionAmp(li_io, i["amp_dc_gain"])
+        supply = CompressionAmp(pool.get(i["lockin"]), i["amp_dc_gain"])
+    elif sup == "split":
+        supply = build_split_supply(cfg, pool)
     else:
-        raise ValueError(f"unknown supply {i['supply']}")
+        raise ValueError(f"unknown supply {sup} ({', '.join(SUPPLIES)})")
 
-    if i["cap"] == "e4980al":
-        cap = E4980AL(Visa(i["capmeter"]))
-    elif i["cap"] in ("ah2550a", "ah2700a"):
-        cap = AHBridge(Visa(i["capmeter"], timeout_ms=10000), i["cap"][2:].upper())
-    else:
-        raise ValueError(f"unknown capacitance meter {i['cap']}")
-
-    cryo = PPMS(i["multipyvu_host"], i["multipyvu_port"])
-    sample = None
-    if i.get("sample") == "ppms_bridge":
-        sample = PPMSBridge(cryo, i["ppms_bridge_channel"], i["ppms_bridge_current_uA"])
-    lockin = None
-    if cfg.get("ac", {}).get("enabled", False):
-        lockin = SR860(li_io or Visa(i["lockin"]), cfg["ac"]["gain"])   # eine Sitzung, ein Bus-Lock
+    cap = build_cap(cfg, pool)
+    cryo = cryo or PPMS(i["multipyvu_host"], i["multipyvu_port"])
+    sample = build_sample(cfg, pool, cryo)
+    lockin = build_lockin(cfg, pool) if cfg.get("ac", {}).get("enabled", False) else None
     return Instruments(supply, cap, cryo, sample, lockin=lockin)
+
+
+def configured_devices(cfg) -> list[tuple[str, str, str]]:
+    """(Rolle, Modell, Adresse) aller VISA-Geräte laut Konfiguration. Für check_instruments."""
+    i = cfg["instruments"]
+    out = []
+    sup = i.get("supply")
+    if sup == "rp100":
+        out.append(("supply", "rp100", i["rp100"]))
+    elif sup == "keithley2400":
+        out += [("tension", "keithley2400", i["keithley_tension"]),
+                ("compression", "keithley2400", i["keithley_compression"])]
+    elif sup == "lockin_amp":
+        out.append(("supply", "lock-in aux + amplifier", i["lockin"]))
+    elif sup == "split":
+        for c in CHANNELS:
+            cc = _ch_cfg(cfg, c)
+            k = cc.get("source", "grounded")
+            if k == "smu":
+                out.append((c, cc.get("model", "keithley2400"), cc["address"]))
+            elif k == "rp100":
+                out.append((c, "rp100", cc.get("address", i.get("rp100"))))
+            elif k == "hv_amp":
+                out.append((c, "aux + amplifier", cc.get("address", i.get("lockin"))))
+    out.append(("capacitance", i["cap"], i["capmeter"]))
+    if cfg.get("ac", {}).get("enabled", False):
+        out.append(("lock-in", i.get("lockin_model", "sr860"), i["lockin"]))
+        if cfg["ac"].get("source", i.get("ac_source", "lockin")) == "generator":
+            out.append(("generator", i.get("generator_model", "33500b"), i["generator"]))
+    names = i.get("sample", "none")
+    for n in ([names] if isinstance(names, str) else names):
+        if n in ("k2182a", "dmm344xx"):
+            out.append(("voltmeter", n, i["voltmeter"]))
+    return out
