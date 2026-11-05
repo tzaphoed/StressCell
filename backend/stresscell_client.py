@@ -178,8 +178,8 @@ class Lab:
     def tare(self, accept=None):
         self._step("tare", accept=accept)
 
-    def ac_on(self, f, V):
-        self._step("ac_on", f=f, V=V)
+    def ac_on(self, f, V, accept=None):
+        self._step("ac_on", f=f, V=V, accept=accept)
 
     def ac_off(self):
         self._step("ac_off")
@@ -187,9 +187,9 @@ class Lab:
     def measure_gain(self, step=None, settle=None):
         self._step("measure_gain", step=step, settle=settle)
 
-    def frequency_sweep(self, start, stop, points, settle=None, n=None, dt=None, label=None):
+    def frequency_sweep(self, start, stop, points, settle=None, n=None, dt=None, label=None, accept=None):
         self._step("frequency_sweep", **{"from": start, "to": stop}, points=points, settle=settle,
-                   n=n, dt=dt, label=label)
+                   n=n, dt=dt, label=label, accept=accept)
 
     def temperature_sweep(self, to, rate=None, dt=None, label=None):
         self._step("temperature_sweep", to=to, rate=rate, dt=dt, label=label)

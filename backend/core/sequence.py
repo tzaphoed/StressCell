@@ -26,7 +26,8 @@ Vergleiche, min, max, abs, log, exp, sqrt, Variablen und die Messwerte T, B, F, 
     {"op": "force_sweep", "from": <N>, "to": <N>, "points": <n>, "tol": <N>, "hold": <s>,
      "timeout": <s>, "n": <Anzahl>, "dt": <s>, "label": "<text>"}
     {"op": "measure_gain", "step": <V>, "settle": <s>}    # dF/dD für die Kraftamplitude der Anregung
-    {"op": "ac_on", "f": <Hz>, "V": <V Spitze am Stapel>}
+    {"op": "ac_on", "f": <Hz>, "V": <V Spitze am Stapel>, "accept": false}
+                                                          # accept: Frequenz nahe k x Brückenfrequenz trotzdem
     {"op": "ac_off"}
     {"op": "frequency_sweep", "from": <Hz>, "to": <Hz>, "points": <n>, "settle": <s>, "n": <Anzahl>,
      "dt": <s>, "label": "<text>"}                        # logarithmisch, sucht das Plateau
@@ -63,9 +64,9 @@ OPS: dict[str, tuple[tuple, tuple]] = {
     "measure": ((), ("n", "dt", "label")),
     "force_sweep": (("from", "to", "points"), ("tol", "hold", "timeout", "n", "dt", "label")),
     "measure_gain": ((), ("step", "settle")),
-    "ac_on": (("f", "V"), ()),
+    "ac_on": (("f", "V"), ("accept",)),
     "ac_off": ((), ()),
-    "frequency_sweep": (("from", "to", "points"), ("settle", "n", "dt", "label")),
+    "frequency_sweep": (("from", "to", "points"), ("settle", "n", "dt", "label", "accept")),
     "temperature_sweep": (("to",), ("rate", "dt", "label")),
     "for_range": (("var", "from", "to", "points", "do"), ("spacing",)),
     "repeat": (("times", "do"), ()),
