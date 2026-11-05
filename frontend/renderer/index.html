@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="de" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -18,74 +18,111 @@
 <body>
   <header id="titlebar">
     <strong>StressCell</strong>
-    <span id="mode-pill" class="pill"></span>
-    <span id="run-pill" class="pill idle">idle</span>
+    <span id="mode-pill" class="pill" title="Simulation oder echte Geräte. Umstellen in config.toml unter [mode]."></span>
+    <span id="run-pill" class="pill idle" title="Zustand der laufenden Sequenz">idle</span>
     <span id="run-text" class="muted"></span>
     <span class="grow"></span>
-    <span id="conn" class="dot" title="Backend connection"></span>
-    <button id="stop-all" title="Stop sequence and force loop, ramp both channels to 0 V">STOP ALL</button>
+    <span id="conn" class="dot" title="Verbindung zum Backend: grün = verbunden"></span>
+    <button id="help-btn" title="Handbuch öffnen (F1)">? Hilfe</button>
+    <button id="stop-all" title="Sequenz und Kraftregler stoppen, AC aus, beide Stapel auf 0 V rampen. Danach ist alles gesperrt, bis jemand quittiert.">STOP ALL</button>
   </header>
   <div id="alarm-bar" class="hidden"></div>
   <div id="app">
-    <nav id="sidebar" aria-label="Pages">
-      <button class="nav active" data-page="cell">Cell</button>
-      <button class="nav" data-page="run">Run</button>
-      <button class="nav" data-page="editor">Editor</button>
-      <button class="nav" data-page="data">Data</button>
-      <button class="nav" data-page="limits">Limits</button>
+    <nav id="sidebar" aria-label="Seiten">
+      <button class="nav" data-page="setup" title="Checkliste vor dem ersten Einsatz, mit Live-Status">Start</button>
+      <button class="nav active" data-page="cell" title="Live-Werte und Handsteuerung">Zelle</button>
+      <button class="nav" data-page="run" title="Sequenzen prüfen und starten">Messung</button>
+      <button class="nav" data-page="editor" title="Sequenzen aus Blöcken bauen">Editor</button>
+      <button class="nav" data-page="data" title="Gespeicherte Läufe ansehen">Daten</button>
+      <button class="nav" data-page="limits" title="Spannungsfenster, Grenzwerte, Kalibrierung, Geräte">Grenzen</button>
+      <button class="nav" data-page="calc" title="Rechenhilfen: AC-Strom, RC-Ecke, Spannung, Thermospannung">Rechner</button>
+      <button class="nav" data-page="help" title="Handbuch mit Schritt-für-Schritt-Anleitung">Hilfe</button>
     </nav>
     <main id="content">
-      <section id="page-cell" class="page active">
-        <div id="readouts" class="readouts"></div>
-        <div class="grid2">
-          <div class="card"><h3>Force</h3><div id="plot-force" class="plot"></div></div>
-          <div class="card"><h3>Stack voltages</h3><div id="plot-volt" class="plot"></div></div>
-          <div class="card"><h3>Temperature</h3><div id="plot-temp" class="plot"></div></div>
-          <div class="card" id="manual">
-            <h3>Manual control</h3>
-            <div class="row">
-              <button data-step='{"op":"output","on":true}'>Outputs on</button>
-              <button data-step='{"op":"output","on":false}'>Outputs off</button>
-              <button data-step='{"op":"zero_drive"}'>Zero drive</button>
-              <button data-step='{"op":"tare"}'>Tare force</button>
-              <button data-step='{"op":"tare","accept":true}' title="Below 250 K or above 10 N: only if the sample is not loaded">Tare, accept offset</button>
-              <button data-step='{"op":"release_force"}'>Release force loop</button>
-            </div>
-            <form class="row" data-op="set_drive"><label>Drive D [V]<input name="D" value="0"></label>
-              <label>Slew [V/s]<input name="slew" value="1"></label><button>Set drive</button></form>
-            <form class="row" data-op="goto_force"><label>Force [N]<input name="F" value="0"></label>
-              <label>Tol [N]<input name="tol" value="0.05"></label><button>Go to force</button></form>
-            <form class="row" data-op="set_temperature"><label>T [K]<input name="T" value="300"></label>
-              <label>Rate [K/min]<input name="rate" value="5"></label><button>Set T</button></form>
-            <form class="row" data-op="set_field"><label>B [T]<input name="B" value="0"></label>
-              <label>Rate [T/min]<input name="rate" value="0.3"></label><button>Set B</button></form>
-            <form class="row" data-op="ac_on"><label>AC f [Hz]<input name="f" value="21"></label>
-              <label>V peak [V]<input name="V" value="2"></label><button>AC on</button>
-              <button type="button" data-step='{"op":"ac_off"}'>AC off</button></form>
-            <p class="muted small">D = V<sub>T</sub> − V<sub>C</sub>, positive is tension.</p>
+
+      <!-- ── Start ───────────────────────────────────────────────────── -->
+      <section id="page-setup" class="page">
+        <div class="grid2 wide-left">
+          <div class="card">
+            <h3>Inbetriebnahme: was noch offen ist</h3>
+            <p class="muted small">Die Liste prüft Konfiguration, Kalibrierung und den letzten Messtakt. Sie schaltet nichts.
+              Grün: erledigt. Gelb: prüfen. Rot: fehlt noch. Klick auf einen Punkt öffnet das passende Kapitel im Handbuch.</p>
+            <ul id="checklist" class="checklist"></ul>
+            <button id="checklist-reload">Neu prüfen</button>
+          </div>
+          <div class="card">
+            <h3>Schritt für Schritt</h3>
+            <ol class="steps small">
+              <li><b>Simulation:</b> mit <code>start.bat --sim 20</code> alles einmal durchspielen. Sequenzen mit „Prüfen“ trocken laufen lassen.</li>
+              <li><b>Anschlussbox</b> bauen (R1 15 kΩ, R2 240 Ω, zwei Bleeder 1 MΩ). In <code>config.toml</code> <code>bleeder_fitted = true</code>.</li>
+              <li><b>Ersatzkondensator</b> 3,3 µF statt Zelle. Oszilloskop am Kondensator: Amplitude und Phase der AC-Kette messen, <code>gain_verified = true</code>.</li>
+              <li><b>Erster Kontakt:</b> <code>simulate = false</code>, <code>read_only = true</code>, dann <code>check_instruments.py</code>.</li>
+              <li><b>Kalibrierung</b> am Papierblatt prüfen (Seite „Grenzen“), <code>verified = true</code>.</li>
+              <li><b>Zelle ohne Probe</b> bei 300 K: ±5 V, dann ±20 V. Kraft bleibt nahe 0, Strom nur während der Rampe.</li>
+              <li><b>24 h pumpen</b>, dann „Tare, Versatz annehmen“ ohne Last. Das ist der Nullpunkt im Vakuum.</li>
+              <li><b>Probe</b> einkleben, <code>force_max_N</code> und Probengeometrie eintragen.</li>
+              <li><b>Hochvakuum</b>, mit höchstens 10 K/min abkühlen. <code>read_only = false</code>.</li>
+              <li><b>Elastokalorik:</b> „measure_gain“, dann Frequenzsweep (<code>ece_find_plateau</code>), dann Temperatursweeps.</li>
+            </ol>
+            <p class="muted small">Ausführlich im Handbuch, Kapitel „Schritt für Schritt“.</p>
           </div>
         </div>
       </section>
 
+      <!-- ── Zelle ───────────────────────────────────────────────────── -->
+      <section id="page-cell" class="page active">
+        <div id="readouts" class="readouts"></div>
+        <div class="grid2">
+          <div class="card"><h3>Kraft</h3><div id="plot-force" class="plot"></div></div>
+          <div class="card"><h3>Spannung an den Stapeln</h3><div id="plot-volt" class="plot"></div></div>
+          <div class="card"><h3>Temperatur</h3><div id="plot-temp" class="plot"></div></div>
+          <div class="card" id="manual">
+            <h3>Handsteuerung</h3>
+            <div class="row">
+              <button data-step='{"op":"output","on":true}' title="Setzt beide Kanäle auf 0 V, liest zurück und schaltet dann ein">Ausgänge an</button>
+              <button data-step='{"op":"output","on":false}' title="Nur nahe 0 V erlaubt: sonst springt die Kraft an der Probe">Ausgänge aus</button>
+              <button data-step='{"op":"zero_drive"}' title="Beide Stapel auf 0 V rampen. Immer erlaubt.">Drive auf 0</button>
+              <button data-step='{"op":"tare"}' title="Aktuelle Kraft als Nullpunkt. Nur ohne Last, nahe Drive 0, über 250 K und unter 10 N Versatz.">Tare</button>
+              <button data-step='{"op":"tare","accept":true}' title="Erster Nullpunkt im Vakuum: das Blatt gilt für Luft, der Versatz ist dann einige 10 N. Nur ohne Last!">Tare, Versatz annehmen</button>
+              <button data-step='{"op":"release_force"}' title="Kraftregler aus, Drive bleibt stehen">Regler lösen</button>
+              <button data-step='{"op":"measure_gain"}' title="dF/dD an zwei DC-Punkten messen. Nötig für F_ac und dT/dσ, bei jeder Temperatur neu.">dF/dD messen</button>
+            </div>
+            <form class="row" data-op="set_drive"><label title="D = V_T − V_C. Positiv ist Zug. Mit der Verdrahtung ohne RP100 (Druckstapel per SMU) geht nur D ≤ +20 V bei 300 K.">Drive D [V]<input name="D" value="0"></label>
+              <label title="Rampengeschwindigkeit. 1 V/s bei 300 K sind etwa 1,7 N/s.">Rampe [V/s]<input name="slew" value="1"></label><button>Drive setzen</button></form>
+            <form class="row" data-op="goto_force"><label title="Zielkraft. Positiv ist Zug. Erst nach verified = true in der Kalibrierdatei.">Kraft [N]<input name="F" value="0"></label>
+              <label title="Toleranz: etwa das Dreifache des Kraftrauschens">Tol [N]<input name="tol" value="0.05"></label><button>Kraft anfahren</button></form>
+            <form class="row" data-op="set_temperature"><label>T [K]<input name="T" value="300"></label>
+              <label title="Datenblatt: nie über 10 K/min, für genaue Kraft unter 4 K/min (AP006)">Rate [K/min]<input name="rate" value="5"></label><button>T setzen</button></form>
+            <form class="row" data-op="set_field"><label>B [T]<input name="B" value="0"></label>
+              <label>Rate [T/min]<input name="rate" value="0.3"></label><button>B setzen</button></form>
+            <form class="row" data-op="ac_on"><label title="Anregungsfrequenz. Plateau mit dem Frequenzsweep suchen.">AC f [Hz]<input name="f" value="21"></label>
+              <label title="Spitzenspannung AM STAPEL. Die Software rechnet Verstärkung und RC-Tiefpass heraus.">V Spitze [V]<input name="V" value="1"></label><button>AC an</button>
+              <button type="button" data-step='{"op":"ac_off"}'>AC aus</button></form>
+            <p class="muted small">D = V<sub>T</sub> − V<sub>C</sub>, positiv ist Zug. Jeder Befehl läuft durch dieselbe Grenzwertprüfung wie Sequenzen und Python.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Messung ─────────────────────────────────────────────────── -->
       <section id="page-run" class="page">
         <div class="grid2 wide-left">
           <div class="card">
-            <h3>Sequence</h3>
-            <div class="row"><select id="seq-list"></select><button id="seq-reload">Refresh</button></div>
+            <h3>Sequenz</h3>
+            <div class="row"><select id="seq-list" title="Sequenzen aus dem Ordner sequences/"></select><button id="seq-reload">Neu laden</button></div>
             <div class="row">
-              <button id="seq-check">Check (dry run)</button>
-              <button id="seq-start" class="primary">Start</button>
+              <button id="seq-check" title="Läuft die Sequenz auf einer simulierten Zelle durch, mit dem aktuellen Zustand als Start. Zeigt Fehler und Dauer.">Prüfen (Trockenlauf)</button>
+              <button id="seq-start" class="primary" title="Startet nach einem automatischen Trockenlauf">Start</button>
               <button id="seq-pause">Pause</button>
-              <button id="seq-resume">Resume</button>
-              <button id="seq-stop">Stop</button>
-              <button id="session-close" title="Ends an open Python session, its force loop and AC drive">Close session</button>
+              <button id="seq-resume">Weiter</button>
+              <button id="seq-stop">Stopp</button>
+              <button id="session-close" title="Beendet eine offene Python-Sitzung samt Kraftregler und AC">Sitzung schließen</button>
             </div>
             <pre id="seq-report" class="log"></pre>
-            <h3>Run log</h3>
+            <h3>Protokoll</h3>
             <pre id="run-log" class="log tall"></pre>
           </div>
           <div class="card">
-            <h3>Points of this run</h3>
+            <h3>Messpunkte dieses Laufs</h3>
             <div class="row"><label>x<select id="pt-x"></select></label><label>y<select id="pt-y"></select></label></div>
             <div id="plot-points" class="plot tall"></div>
           </div>
@@ -94,10 +131,10 @@
 
       <section id="page-editor" class="page">
         <div class="row">
-          <input id="ed-name" value="new_sequence" aria-label="Sequence name">
-          <button id="ed-load">Load selected</button>
-          <button id="ed-save" class="primary">Save</button>
-          <button id="ed-check">Check (dry run)</button>
+          <input id="ed-name" value="neue_sequenz" aria-label="Name der Sequenz">
+          <button id="ed-load">Ausgewählte laden</button>
+          <button id="ed-save" class="primary">Speichern</button>
+          <button id="ed-check">Prüfen (Trockenlauf)</button>
           <span id="ed-msg" class="muted"></span>
         </div>
         <div id="blockly"></div>
@@ -105,22 +142,64 @@
 
       <section id="page-data" class="page">
         <div class="grid2 wide-right">
-          <div class="card"><h3>Runs</h3><ul id="run-list" class="list"></ul></div>
+          <div class="card"><h3>Läufe</h3><ul id="run-list" class="list"></ul></div>
           <div class="card">
-            <h3 id="data-title">Select a run</h3>
-            <div class="row"><label>x<select id="dt-x"></select></label><label>y<select id="dt-y"></select></label></div>
+            <h3 id="data-title">Lauf auswählen</h3>
+            <div class="row"><label>x<select id="dt-x"></select></label><label>y<select id="dt-y"></select></label>
+              <button id="dt-csv" title="data.csv dieses Laufs herunterladen">CSV</button></div>
             <div id="plot-data" class="plot tall"></div>
             <pre id="data-log" class="log"></pre>
           </div>
         </div>
       </section>
 
+      <!-- ── Grenzen, Kalibrierung, Geräte ───────────────────────────── -->
       <section id="page-limits" class="page">
         <div class="grid2">
-          <div class="card"><h3>Voltage window and operating point</h3><div id="plot-window" class="plot tall"></div></div>
-          <div class="card"><h3>Active limits</h3><table id="limit-table"></table>
-            <h3>Calibration</h3><table id="cal-table"></table></div>
+          <div class="card"><h3>Spannungsfenster und Arbeitspunkt</h3><div id="plot-window" class="plot tall"></div>
+            <p class="muted small">Datenblatt Tabelle 2. Beim Aufwärmen wird das Fenster enger: der Guard fährt nach, auch wenn jemand an MultiVu aufwärmt.</p></div>
+          <div class="card">
+            <h3>Kalibrierung</h3>
+            <p id="cal-formula" class="muted small"></p>
+            <table id="cal-table"></table>
+            <h3>Nullpunkt und Empfindlichkeit über T</h3>
+            <table id="cal-T"></table>
+            <p class="muted small">C₀: Kapazität ohne Last. S = dC/dF. Bei tiefer Temperatur misst der Sensor weniger fF je N, κ gleicht die Steifigkeit des Titanbalkens aus.</p>
+          </div>
+          <div class="card"><h3>Geräte</h3><table id="dev-table"></table>
+            <h3>AC-Kette</h3><table id="chain-table"></table></div>
+          <div class="card"><h3>Aktive Grenzwerte</h3><table id="limit-table"></table>
+            <p class="muted small">Ändern nur in config.toml, dann Backend neu starten.</p></div>
         </div>
+      </section>
+
+      <!-- ── Rechner ─────────────────────────────────────────────────── -->
+      <section id="page-calc" class="page">
+        <div class="grid2">
+          <div class="card">
+            <h3>Eingaben</h3>
+            <form id="calc-form" class="row">
+              <label title="Anregungsfrequenz">f [Hz]<input name="f" value="100"></label>
+              <label title="Spitzenspannung am Stapel">V Spitze [V]<input name="V" value="1"></label>
+              <label>T [K]<input name="T" value="300"></label>
+              <label title="Kraft auf die Probe">F [N]<input name="F" value="10"></label>
+              <label title="Probenquerschnitt">A [mm²]<input name="A_mm2" value="0.1"></label>
+              <label title="Probenlänge zwischen den Klebestellen">L [mm]<input name="L_mm" value="1"></label>
+              <label title="R2 plus 50 Ω Ausgang">R [Ω]<input name="R2" value="290"></label>
+              <label title="Thermospannung, wie am Lock-in oder Voltmeter abgelesen">U [µV]<input name="V_tc_uV" value="1"></label>
+              <label title="Verstärkung vor dem Messgerät (SR560)">Vorverst.<input name="preamp" value="1"></label>
+              <button class="primary">Rechnen</button>
+            </form>
+          </div>
+          <div class="card"><h3>Ergebnis</h3><table id="calc-out"></table>
+            <p class="muted small">Die Dehnung ist eine Obergrenze: Epoxid und Probenhalter nehmen einen Teil des Hubs auf
+              (Hicks 2014, Jerzembeck 2022). Für Auswertungen zählt die gemessene Kraft.</p></div>
+        </div>
+      </section>
+
+      <!-- ── Hilfe ───────────────────────────────────────────────────── -->
+      <section id="page-help" class="page">
+        <iframe id="help-frame" title="Handbuch" src="about:blank"></iframe>
       </section>
     </main>
   </div>

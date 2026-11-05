@@ -21,7 +21,7 @@ body{background:var(--bg-primary);color:var(--text-primary);font:14px/1.45 'Sego
 .alarm{display:flex;gap:10px;align-items:center}.alarm span{flex:1}
 .hidden{display:none!important}
 #app{flex:1;display:flex;min-height:0}
-#sidebar{width:92px;background:var(--bg-secondary);border-right:1px solid var(--border);padding:8px;display:flex;flex-direction:column;gap:4px}
+#sidebar{width:112px;background:var(--bg-secondary);border-right:1px solid var(--border);padding:8px;display:flex;flex-direction:column;gap:4px}
 .nav{background:none;border:none;text-align:left;color:var(--text-secondary);padding:8px 10px;border-radius:var(--radius-sm)}
 .nav:hover{background:var(--bg-card)}.nav.active{background:var(--accent);color:#fff}
 #content{flex:1;min-width:0;overflow:auto;padding:14px}
@@ -58,3 +58,15 @@ table{border-collapse:collapse;width:100%;font:12px var(--mono)}td{padding:3px 6
 .toast.err{border-color:var(--danger)}
 @media (max-width:900px){.grid2,.grid2.wide-left,.grid2.wide-right{grid-template-columns:minmax(0,1fr)}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* Inbetriebnahme, Rechner, Hilfe */
+.checklist{list-style:none;margin:0 0 10px;padding:0;display:flex;flex-direction:column;gap:6px}
+.ck{display:flex;gap:10px;align-items:flex-start;background:var(--bg-secondary);border:1px solid var(--border);border-left:4px solid var(--border-light);border-radius:var(--radius-sm);padding:7px 10px;cursor:default}
+.ck[tabindex]{cursor:pointer}.ck[tabindex]:hover{border-color:var(--accent-text)}
+.ck.ok{border-left-color:var(--success)}.ck.open{border-left-color:var(--danger)}.ck.warn{border-left-color:var(--warning)}.ck.info{border-left-color:var(--accent-text)}
+.badge{flex:none;width:62px;text-align:center;font-size:11px;padding:1px 0;border-radius:999px;background:var(--border)}
+.ck.ok .badge{background:var(--success);color:#04220f}.ck.open .badge{background:var(--danger);color:#fff}.ck.warn .badge{background:var(--warning);color:#2a1a00}
+.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:5px}
+code{font:12px var(--mono);background:var(--bg-secondary);padding:0 4px;border-radius:3px}
+#calc-form input{width:96px}
+#help-frame{width:100%;height:calc(100vh - 90px);border:1px solid var(--border);border-radius:var(--radius);background:#fff}
+.ro[title]{cursor:help}

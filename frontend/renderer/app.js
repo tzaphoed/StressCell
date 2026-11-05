@@ -3,6 +3,7 @@ import { registerBlocks, toolbox, toSequence, fromSequence, looseBlocks } from '
 const $ = s => document.querySelector(s)
 const $$ = s => [...document.querySelectorAll(s)]
 const TOKEN = document.querySelector('meta[name=stresscell-token]').content
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
 
 async function api(method, path, body) {
   const r = await fetch(path, {
@@ -26,7 +27,7 @@ function toast(msg, err = false) {
 const guarded = fn => async (...a) => { try { return await fn(...a) } catch (e) { toast(e.message, true) } }
 
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim()
-const layout = (y, x = 'time [min]') => ({
+const layout = (y, x = 'Zeit [min]') => ({
   datarevision: Date.now(), uirevision: y, margin: { l: 52, r: 12, t: 6, b: 38 }, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: css('--bg-secondary'),
   font: { color: css('--text-primary'), size: 11 }, showlegend: true, legend: { orientation: 'h', y: 1.12 },
   xaxis: { title: x, gridcolor: css('--border'), zerolinecolor: css('--border-light') },
@@ -35,20 +36,32 @@ const layout = (y, x = 'time [min]') => ({
 const CONFIG = { responsive: true, displaylogo: false }
 
 // ── Live-Anzeige ─────────────────────────────────────────────────────────
+// [Schlüssel, Name, Einheit, Nachkommastellen, Faktor, Erklärung]
 const READOUTS = [
-  ['T', 'Temperature', 'K', 3], ['B', 'Field', 'T', 3], ['F', 'Force', 'N', 3], ['stress_MPa', 'Stress', 'MPa', 1],
-  ['C_pF', 'Capacitance', 'pF', 6], ['V_T', 'Tension stack', 'V', 2], ['V_C', 'Compression stack', 'V', 2],
-  ['I_T', 'I tension', 'mA', 3, 1e3], ['I_C', 'I compression', 'mA', 3, 1e3],
-  ['T_ac_K', 'T amplitude', 'mK', 2, 1e3], ['theta', 'Phase', '°', 1], ['f_ac', 'AC frequency', 'Hz', 1], ['V_ac', 'AC peak', 'V', 2],
+  ['T', 'Temperatur', 'K', 3, 1, 'PPMS-Thermometer. Die Zelle hinkt beim Abkühlen hinterher, darum rechnet das Fenster mit dem langsameren Wert.'],
+  ['B', 'Feld', 'T', 3, 1, 'Magnetfeld laut MultiVu'],
+  ['F', 'Kraft', 'N', 3, 1, 'Aus der Kapazität über die Kalibrierformel. Positiv ist Zug. Erst nach Tare im Vakuum absolut richtig.'],
+  ['stress_MPa', 'Spannung', 'MPa', 1, 1, 'F geteilt durch den Probenquerschnitt aus config.toml [sample]'],
+  ['C_pF', 'Kapazität', 'pF', 6, 1, 'Rohwert des Kraftsensors. Fällt unter Zug (#0260: rund 0,97 fF/N bei 290 K).'],
+  ['V_T', 'Zugstapel', 'V', 2, 1, 'Kommandowert der Quelle am Zugstapel (rot +, weiß −), keine Messung am Stapel'],
+  ['V_C', 'Druckstapel', 'V', 2, 1, 'Kommandowert der Quelle am Druckstapel (braun +, blau −)'],
+  ['I_T', 'I Zug', 'mA', 3, 1e3, 'Strom in den Zugstapel, ohne Bleederstrom. Über current_trip_A: Lichtbogen angenommen.'],
+  ['I_C', 'I Druck', 'mA', 3, 1e3, 'Strom in den Druckstapel, ohne Bleederstrom'],
+  ['T_ac_K', 'ΔT AC', 'mK', 2, 1e3, 'Temperaturamplitude der Probe aus der Lock-in-Spannung, Vorverstärker und Type-E-Seebeck'],
+  ['theta_stack', 'Phase', '°', 1, 1, 'Phase des Thermoelement-Signals gegen die Spannung AM STAPEL (RC-Tiefpass herausgerechnet). Im Plateau nahe 0° oder 180°.'],
+  ['f_ac', 'AC-Frequenz', 'Hz', 1, 1, 'Anregungsfrequenz'],
+  ['V_ac', 'AC Spitze', 'V', 2, 1, 'Spitzenspannung am Stapel'],
+  ['dT_dsigma_K_MPa', 'dT/dσ', 'mK/MPa', 3, 1e3, 'Elastokalorischer Koeffizient: ΔT_ac / (F_ac/A). F_ac = dF/dD · V_ac, dF/dD aus „dF/dD messen“ bei dieser Temperatur.'],
+  ['dT_dc_K', 'ΔT DC', 'mK', 2, 1e3, 'Thermospannung vom Nanovoltmeter, für Laden und Entladen'],
 ]
-$('#readouts').innerHTML = READOUTS.map(([k, n, u]) =>
-  `<div class="ro" id="ro-${k}"><div class="k">${n}</div><div><span class="v">–</span><span class="u">${u}</span></div></div>`).join('') +
-  `<div class="ro" id="ro-chamber"><div class="k">Chamber</div><div class="small" id="chamber-text">–</div></div>
-   <div class="ro" id="ro-window"><div class="k">Voltage window</div><div class="small" id="window-text">–</div></div>
-   <div class="ro" id="ro-loop"><div class="k">Force loop</div><div class="small" id="loop-text">–</div></div>`
+$('#readouts').innerHTML = READOUTS.map(([k, n, u, , , h]) =>
+  `<div class="ro" id="ro-${k}" title="${esc(h)}"><div class="k">${n}</div><div><span class="v">–</span><span class="u">${u}</span></div></div>`).join('') +
+  `<div class="ro" id="ro-chamber" title="Volles Spannungsfenster nur in Hochvakuum"><div class="k">Kammer</div><div class="small" id="chamber-text">–</div></div>
+   <div class="ro" id="ro-window" title="Erlaubte Spannung je Stapel bei der aktuellen (effektiven) Temperatur und Kammer"><div class="k">Fenster</div><div class="small" id="window-text">–</div></div>
+   <div class="ro" id="ro-loop" title="Kraftregler: Ziel und geschätzte Steigung dF/dD"><div class="k">Kraftregler</div><div class="small" id="loop-text">–</div></div>`
 
 const hist = { t: [], T: [], F: [], V_T: [], V_C: [], vmin: [], vmax: [] }
-let last = null, plotted = false, t0 = null, lastDraw = 0
+let last = null, t0 = null, lastDraw = 0
 
 function push(d) {
   if (t0 === null) t0 = d.t
@@ -67,7 +80,7 @@ function showMonitor(d) {
   $('#ro-chamber').classList.toggle('bad', d.chamber_ok === false)
   $('#window-text').textContent = d.vmin == null ? '–' : `${d.vmin.toFixed(1)} … ${d.vmax.toFixed(1)} V`
   const f = d.force
-  $('#loop-text').textContent = f?.enabled ? `on, ${f.target.toFixed(2)} N, G ${f.G.toFixed(2)} N/V` : 'off'
+  $('#loop-text').textContent = f?.enabled ? `an, ${f.target.toFixed(2)} N, G ${f.G.toFixed(2)} N/V` : 'aus'
   draw()
 }
 
@@ -80,7 +93,7 @@ function draw() {
   Plotly.react('plot-volt', [
     { x: t, y: hist.V_T, name: 'V_T', line: { color: css('--accent-text') } },
     { x: t, y: hist.V_C, name: 'V_C', line: { color: css('--success') } },
-    { x: t, y: hist.vmax, name: 'window', line: { color: css('--danger'), dash: 'dot', width: 1 } },
+    { x: t, y: hist.vmax, name: 'Fenster', line: { color: css('--danger'), dash: 'dot', width: 1 } },
     { x: t, y: hist.vmin, showlegend: false, line: { color: css('--danger'), dash: 'dot', width: 1 } },
   ], layout('V'), CONFIG)
   Plotly.react('plot-temp', [{ x: t, y: hist.T, name: 'T', line: { color: css('--warning') } }], layout('T [K]'), CONFIG)
@@ -100,7 +113,8 @@ function showAlarms(list) {
   bar.replaceChildren(...list.map(a => {
     const row = document.createElement('div'); row.className = 'alarm'
     const s = document.createElement('span'); s.textContent = a.text
-    const b = document.createElement('button'); b.textContent = 'Acknowledge'
+    const b = document.createElement('button'); b.textContent = 'Quittieren'
+    b.title = 'Erst die Ursache prüfen. Danach sind wieder Schritte erlaubt.'
     b.onclick = guarded(() => post('/alarms/ack', { key: a.key }))
     row.append(s, b)
     return row
@@ -111,7 +125,7 @@ function showRun(r) {
   const p = $('#run-pill')
   p.className = 'pill ' + r.state
   p.textContent = r.state
-  $('#run-text').textContent = [r.name, r.message, r.state === 'idle' ? r.result : `${r.points} points`].filter(Boolean).join(' · ')
+  $('#run-text').textContent = [r.name, r.message, r.state === 'idle' ? r.result : `${r.points} Punkte`].filter(Boolean).join(' · ')
 }
 
 const points = {}
@@ -153,25 +167,83 @@ function connect() {
   }
 }
 
-// ── Bedienung ────────────────────────────────────────────────────────────
-$$('.nav').forEach(b => b.onclick = () => {
-  $$('.nav').forEach(x => x.classList.toggle('active', x === b))
-  $$('.page').forEach(p => p.classList.toggle('active', p.id === 'page-' + b.dataset.page))
+// ── Navigation ───────────────────────────────────────────────────────────
+function show(page) {
+  $$('.nav').forEach(x => x.classList.toggle('active', x.dataset.page === page))
+  $$('.page').forEach(p => p.classList.toggle('active', p.id === 'page-' + page))
   lastDraw = 0
-  if (b.dataset.page === 'editor') Blockly.svgResize(ws)
-  if (b.dataset.page === 'run') { reloadSeq(); drawPoints() }
-  if (b.dataset.page === 'data') loadRuns()
+  if (page === 'editor') Blockly.svgResize(ws)
+  if (page === 'run') { reloadSeq(); drawPoints() }
+  if (page === 'data') loadRuns()
+  if (page === 'setup') loadChecklist()
+  if (page === 'limits') loadCalibration()
+  if (page === 'calc') runCalc()
   window.dispatchEvent(new Event('resize'))
   draw()
-})
-$('#stop-all').onclick = guarded(() => post('/stop_all'))
-const step = guarded(async st => { await post('/step', st); toast(`${st.op} done`) })
+}
+function openHelp(chapter = '') {
+  const f = $('#help-frame')
+  const target = '/help' + (chapter ? '#' + chapter : '')
+  if (!f.src.endsWith(target)) f.src = target
+  show('help')
+}
+$$('.nav').forEach(b => b.onclick = () => b.dataset.page === 'help' ? openHelp() : show(b.dataset.page))
+$('#help-btn').onclick = () => openHelp()
+document.addEventListener('keydown', e => { if (e.key === 'F1') { e.preventDefault(); openHelp() } })
+
+// ── Bedienung ────────────────────────────────────────────────────────────
+$('#stop-all').onclick = guarded(async () => { await post('/stop_all'); toast('STOP ALL: alles auf 0 V, bitte quittieren') })
+const step = guarded(async st => { await post('/step', st); toast(`${st.op}: erledigt`) })
 $$('[data-step]').forEach(b => b.onclick = () => step(JSON.parse(b.dataset.step)))
 $$('form[data-op]').forEach(f => f.onsubmit = e => {
   e.preventDefault()
   const st = { op: f.dataset.op }
   for (const i of f.querySelectorAll('input')) if (i.value !== '') st[i.name] = Number(i.value)
   step(st)
+})
+
+// Inbetriebnahme
+const STATE_TEXT = { ok: 'erledigt', open: 'offen', warn: 'prüfen', info: 'Info' }
+const CHAPTER = { 'Software starten': 'software', 'Erster Kontakt': 'erster-kontakt', 'Anschlussbox': 'anschlussbox',
+  'Kalibrierung': 'kalibrierung', 'AC-Kette': 'ac-kette', 'Vakuum': 'vakuum', 'Probe': 'probe', 'Grenzwerte': 'grenzwerte' }
+const loadChecklist = guarded(async () => {
+  const { items } = await get('/setup/checklist')
+  $('#checklist').replaceChildren(...items.map(i => {
+    const li = document.createElement('li'); li.className = 'ck ' + i.state
+    li.innerHTML = `<span class="badge">${STATE_TEXT[i.state]}</span><div><b>${esc(i.title)}</b><div class="small">${esc(i.detail)}</div>` +
+      (i.why ? `<div class="small muted">${esc(i.why)}</div>` : '') + '</div>'
+    if (i.chapter) { li.tabIndex = 0; li.title = 'Kapitel im Handbuch öffnen'; li.onclick = () => openHelp(CHAPTER[i.chapter] || '') }
+    return li
+  }))
+})
+$('#checklist-reload').onclick = loadChecklist
+
+// Rechner
+const NAMES = {
+  I_stack_mA: ['Strom in den Stapel', 'mA', 3], V_peak_max_V: ['größte Spitze bei der Stromreserve', 'V', 3],
+  out_rms_V: ['nötige Ausgangsspannung', 'V rms', 4], corner_Hz: ['RC-Ecke', 'Hz', 1], phase_RC_deg: ['RC-Phase bei f', '°', 1],
+  stress_MPa: ['mechanische Spannung', 'MPa', 1], strain_est: ['Dehnung (Obergrenze)', '', 6], seebeck_uV_K: ['Seebeck Type E bei T', 'µV/K', 2],
+  dT_mK: ['Temperatur aus Thermospannung', 'mK', 3], drive_max_V: ['größter Drive bei T', 'V', 0],
+}
+const runCalc = guarded(async () => {
+  const q = new URLSearchParams(new FormData($('#calc-form')))
+  const r = await get('/calc?' + q)
+  $('#calc-out').innerHTML = Object.entries(NAMES).map(([k, [n, u, d]]) =>
+    `<tr><td>${n}</td><td>${r[k] == null ? '–' : Number(r[k]).toFixed(d)} ${u}</td></tr>`).join('') +
+    `<tr><td>Spannungsfenster je Stapel</td><td>${r.window_V[0].toFixed(1)} … ${r.window_V[1].toFixed(1)} V</td></tr>`
+})
+$('#calc-form').onsubmit = e => { e.preventDefault(); runCalc() }
+
+// Kalibrierung und Geräte
+const rows = o => Object.entries(o).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(typeof v === 'number' ? +v.toPrecision(7) : typeof v === 'object' ? JSON.stringify(v) : v)}</td></tr>`).join('')
+const loadCalibration = guarded(async () => {
+  const c = await get('/calibration')
+  $('#cal-table').innerHTML = rows(c.info)
+  $('#cal-formula').textContent = c.info.model === 'razorbill'
+    ? 'F = κ(T) · (α / (C − Cp) − f₀(T)),  κ = 1/(0,91 + 5·10⁻⁵ T + 9·10⁻⁷ T²),  f₀(T) = f₀,ref + Δf₀(T) − Δf₀(T_ref)'
+    : 'Lineares Modell: F = sign · (C − C_zero − dC(T)) / (S · α(T))'
+  $('#cal-T').innerHTML = c.table ? '<tr><td>T [K]</td><td>κ</td><td>f₀ [N]</td><td>C₀ [pF]</td><td>S [fF/N]</td></tr>' +
+    c.table.map(r => `<tr><td>${r.T}</td><td>${r.kappa.toFixed(4)}</td><td>${r.f0_N.toFixed(2)}</td><td>${r.C0_pF.toFixed(5)}</td><td>${r.S_fF_N.toFixed(3)}</td></tr>`).join('') : ''
 })
 
 // Sequenzen
@@ -185,7 +257,7 @@ $('#seq-reload').onclick = reloadSeq
 const selected = () => get('/sequences/' + encodeURIComponent($('#seq-list').value))
 function report(el, r) {
   const h = r.duration_s / 3600
-  el.textContent = (r.ok ? 'OK' : 'FAILED: ' + r.error) + `\nestimated duration ${h.toFixed(2)} h, ${r.points ?? 0} points`
+  el.textContent = (r.ok ? 'OK' : 'FEHLER: ' + r.error) + `\ngeschätzte Dauer ${h.toFixed(2)} h, ${r.points ?? 0} Punkte`
 }
 $('#seq-check').onclick = guarded(async () => report($('#seq-report'), await post('/sequence/check', await selected())))
 $('#seq-start').onclick = guarded(async () => { $('#run-log').textContent = ''; await post('/run/start', await selected()) })
@@ -204,13 +276,13 @@ const ws = Blockly.inject('blockly', {
 })
 window.__ws = ws
 const edSeq = () => {
-  if (looseBlocks(ws)) toast(`${looseBlocks(ws)} loose block group(s) ignored: only the top stack runs`, true)
+  if (looseBlocks(ws)) toast(`${looseBlocks(ws)} lose Blockgruppe(n) ignoriert: nur der oberste Stapel läuft`, true)
   return toSequence(ws, $('#ed-name').value)
 }
 $('#ed-save').onclick = guarded(async () => {
   const n = $('#ed-name').value
   await post('/sequences/' + encodeURIComponent(n), edSeq())
-  $('#ed-msg').textContent = `saved ${n}.seq.json`
+  $('#ed-msg').textContent = `gespeichert als ${n}.seq.json`
   reloadSeq()
 })
 $('#ed-check').onclick = guarded(async () => report($('#ed-msg'), await post('/sequence/check', edSeq())))
@@ -221,7 +293,7 @@ $('#ed-load').onclick = guarded(async () => {
 })
 
 // Daten
-let current = null
+let current = null, currentName = null
 const loadRuns = guarded(async () => {
   const { runs } = await get('/runs')
   $('#run-list').replaceChildren(...runs.map(r => {
@@ -234,6 +306,7 @@ const loadRuns = guarded(async () => {
 const openRun = guarded(async (r, li) => {
   $$('#run-list li').forEach(x => x.classList.toggle('sel', x === li))
   $('#data-title').textContent = r
+  currentName = r
   current = await get(`/runs/${encodeURIComponent(r)}/data`)
   const keys = current.columns.filter(k => k !== 'label')
   $('#dt-x').replaceChildren(...keys.map(k => new Option(k, k))); $('#dt-y').replaceChildren(...keys.map(k => new Option(k, k)))
@@ -248,18 +321,24 @@ function drawData() {
     { ...layout(y, x), showlegend: false }, CONFIG)
 }
 $('#dt-x').onchange = $('#dt-y').onchange = drawData
+$('#dt-csv').onclick = () => { if (currentName) location.href = `/runs/${encodeURIComponent(currentName)}/data.csv` }
 
 // Start
 let curve = null
 guarded(async () => {
   const info = await get('/info')
   const m = $('#mode-pill')
-  m.textContent = info.simulated ? 'simulation' : info.read_only ? 'real instruments, read only' : 'real instruments'
+  m.textContent = info.simulated ? 'Simulation' : info.read_only ? 'echte Geräte, nur lesen' : 'echte Geräte'
   m.classList.add(info.simulated ? 'sim' : 'real')
   curve = await get('/limits/curve')
-  const rows = o => Object.entries(o).map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')
   $('#limit-table').innerHTML = rows(info.limits)
-  $('#cal-table').innerHTML = rows(info.calibration)
+  const i = info.instruments
+  const dev = { Netzteil: i.supply, Zugstapel: i.tension?.source, Druckstapel: i.compression ? `${i.compression.source} ${i.compression.model ?? ''}` : '',
+    Kapazität: i.cap, 'Lock-in': i.lockin_model, 'AC-Quelle': info.ac?.source, Zusatz: Array.isArray(i.sample) ? i.sample.join(', ') : i.sample }
+  for (const [k, v] of Object.entries(info.identify || {})) dev['Antwort ' + k] = v
+  $('#dev-table').innerHTML = rows(dev)
+  $('#chain-table').innerHTML = rows(info.ac_chain || {})
   reloadSeq()
   connect()
+  loadChecklist()
 })()

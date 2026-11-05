@@ -28,10 +28,10 @@ sys.path.insert(0, str(BACKEND))
 
 import uvicorn                                                     # noqa: E402
 from fastapi import Body, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect  # noqa: E402
-from fastapi.responses import HTMLResponse, JSONResponse           # noqa: E402
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse  # noqa: E402
 from fastapi.staticfiles import StaticFiles                        # noqa: E402
 
-from core import fc100                                             # noqa: E402
+from core import advisor, fc100                                    # noqa: E402
 from core.config import load_config                                # noqa: E402
 from core.hub import Hub, clean                                    # noqa: E402
 from core.interpreter import StepError                             # noqa: E402
@@ -42,6 +42,7 @@ from core.stack import build                                       # noqa: E402
 
 log = logging.getLogger("stresscell.server")
 FRONTEND = BACKEND.parent / "frontend" / "renderer"
+DOCS = BACKEND.parent / "docs"
 hub = Hub()
 
 
@@ -140,9 +141,21 @@ def info():
     st = State.stack
     return clean({"simulated": st.simulated, "read_only": st.safety.read_only, "limits": st.cfg["limits"],
                   "sample": st.cfg["sample"], "calibration": st.cal.info(), "capacitance": st.cfg["capacitance"],
-                  "chamber_safe": st.cfg["chamber"]["safe_states"], "instruments": {
-                      "supply": st.cfg["instruments"]["supply"], "cap": st.cfg["instruments"]["cap"]},
-                  "tick_s": st.cfg["monitor"]["tick_s"]})
+                  "chamber_safe": st.cfg["chamber"]["safe_states"], "instruments": st.cfg["instruments"],
+                  "ac": st.cfg.get("ac", {}), "ac_chain": st.safety.ac_chain.info(),
+                  "identify": _identify(st), "tick_s": st.cfg["monitor"]["tick_s"]})
+
+
+def _identify(st) -> dict:
+    out = {}
+    for name in ("supply", "cap", "cryo", "lockin", "sample"):
+        dev = getattr(st.inst, name, None)
+        fn = getattr(dev, "identify", None)
+        try:
+            out[name] = fn() if fn else (type(dev).__name__ if dev is not None else None)
+        except Exception as e:
+            out[name] = f"no answer: {e}"
+    return out
 
 
 def status_dict():
@@ -154,6 +167,43 @@ def status_dict():
 @app.get("/status")
 def status():
     return status_dict()
+
+
+@app.get("/setup/checklist")
+def setup_checklist():
+    return clean({"items": advisor.checklist(State.stack)})
+
+
+@app.get("/calc")
+def calc(request: Request):
+    try:
+        return clean(advisor.calc(State.cfg, dict(request.query_params)))
+    except (TypeError, ValueError, ZeroDivisionError) as e:
+        raise HTTPException(400, f"calc: {e}")
+
+
+@app.get("/calibration")
+def calibration():
+    cal = State.stack.cal
+    out = {"info": cal.info()}
+    if hasattr(cal, "table"):
+        out["table"] = cal.table()
+    return clean(out)
+
+
+@app.get("/config")
+def config_view():
+    """Konfiguration zum Ansehen in der Oberfläche. Ändern nur in config.toml."""
+    c = {k: v for k, v in State.cfg.items() if k != "paths"}
+    return clean({"config": c, "file": str(State.cfg["paths"]["config"])})
+
+
+@app.get("/help", response_class=HTMLResponse)
+def help_page():
+    p = DOCS / "handbuch" / "handbuch.html"
+    if not p.exists():
+        return HTMLResponse("<p>Handbuch nicht gefunden: docs/handbuch/handbuch.html</p>", status_code=404)
+    return HTMLResponse(p.read_text(encoding="utf-8"))
 
 
 @app.get("/limits/curve")
@@ -281,6 +331,14 @@ def run_data(name: str):
         except (TypeError, ValueError):
             return v or None
     return clean({"columns": cols, "data": {c: [conv(r.get(c)) for r in rows] for c in cols}})
+
+
+@app.get("/runs/{name}/data.csv")
+def run_csv(name: str):
+    p = _run_file(name, "data.csv")
+    if not p.exists():
+        raise HTTPException(404, "no data")
+    return FileResponse(p, media_type="text/csv", filename=f"{name}.csv")
 
 
 def _run_file(name: str, fname: str) -> Path:

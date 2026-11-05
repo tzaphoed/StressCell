@@ -93,3 +93,20 @@ def test_read_only_stop_all_is_an_error(api):
     server.State.stack.safety.read_only = True
     assert api.post("/stop_all").status_code == 409
     server.State.stack.safety.read_only = False
+
+
+def test_setup_checklist_calc_calibration_and_help(api):
+    items = api.get("/setup/checklist").json()["items"]
+    keys = {i["key"] for i in items}
+    assert {"mode", "devices", "cal_verified", "vacuum", "sample", "measured"} <= keys
+    assert all(i["state"] in ("ok", "open", "warn", "info") for i in items)
+    c = api.get("/calc", params={"f": 100, "V": 2, "T": 300, "F": 10, "A_mm2": 0.1}).json()
+    assert c["I_stack_mA"] == pytest.approx(3.9, abs=0.05)
+    assert c["stress_MPa"] == pytest.approx(100.0)
+    assert c["window_V"] == [-20.0, 120.0]
+    assert api.get("/calc", params={"f": "x"}).status_code == 400
+    assert api.get("/calibration").json()["info"]["model"] == "linear"
+    assert "config" in api.get("/config").json()
+    assert api.get("/help").status_code in (200, 404)
+    info = api.get("/info").json()
+    assert "identify" in info and "ac_chain" in info
