@@ -25,6 +25,7 @@ def cfg(tmp_path):
     # Die Grundtests laufen mit zwei DC-Kanälen (RP100) und der Ikeda-Kette. Die geteilte
     # Verdrahtung ohne RP100 hat eigene Tests (test_split.py).
     c["instruments"]["supply"] = "rp100"
+    c["cell_thermometer"]["source"] = "none"     # eigene Tests mit Zellthermometer (test_cernox_recorder.py)
     c["ac"].update(gain=25.0, series_R_ohm=0.0, V_max=20.0)
     c["paths"]["config"] = tmp_path / "config.toml"
     c["limits"]["slew_default_V_s"] = 10.0      # Tests laufen sonst minutenlang durch die Rampen

@@ -34,6 +34,8 @@ class Curve:
         if not (np.all(d < 0) or np.all(d > 0)):
             raise ValueError("thermometer curve: T(R) is not monotonic")
         self.name = name
+        self.serial = ""
+        self.model = ""
         self.R_range = (float(np.exp(self.lnR[0])), float(np.exp(self.lnR[-1])))
         self.T_range = tuple(sorted((float(np.exp(self.lnT[0])), float(np.exp(self.lnT[-1])))))
 
@@ -67,7 +69,12 @@ class Curve:
     def _load_340(cls, text, name):
         fmt = 3
         R, T = [], []
+        head = {}
         for line in text.splitlines():
+            h = re.match(r"\s*(Sensor Model|Serial Number)\s*:\s*(\S+)", line, re.I)
+            if h:
+                head[h[1].lower()] = h[2]
+                continue
             m = re.match(r"\s*Data Format:\s*(\d)", line, re.I)
             if m:
                 fmt = int(m[1])
@@ -82,7 +89,9 @@ class Curve:
                 T.append(t)
         if fmt not in (3, 4):
             raise ValueError(f"{name}: .340 data format {fmt} is not a resistance curve (use 3 or 4)")
-        return cls(R, T, name)
+        c = cls(R, T, name)
+        c.serial, c.model = head.get("serial number", ""), head.get("sensor model", "")
+        return c
 
 
 def write_curve_csv(path: Path, R, T, note: str = ""):

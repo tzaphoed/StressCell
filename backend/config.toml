@@ -106,13 +106,14 @@ length_mm = 1.0
 [cell_thermometer]
 # Eigenes Thermometer an der Zelle (Cernox). Handbuch Kapitel "Zellthermometer".
 # source: none | lakeshore | ppms_bridge | dmm
-source = "none"
+source = "lakeshore"      # dein Aufbau: Cernox am Lake Shore mit Kalibrierkurve. Modell, Adresse, Eingang prüfen!
 model = "336"             # lakeshore: 218 | 224 | 335 | 336 | 350 | 372
 address = "GPIB0::12::INSTR"
 input = "A"               # Lake Shore Eingang (218 und 372: Nummer, z. B. "1")
 channel = 2               # ppms_bridge: Kanal der Resistivity-Option
 current_uA = 10.0         # ppms_bridge: Messstrom. Cernox heizt sich bei tiefer T sonst selbst
-calibration = "cernox.340"  # ppms_bridge und dmm: Kurve R -> T im Ordner calibrations (.340 oder csv R_ohm,T_K)
+calibration = "cernox.340"  # Kurve R -> T im Ordner calibrations (.340 oder csv R_ohm,T_K)
+curve_in = "device"       # lakeshore: device = Kurve im Gerät (KRDG?) | software = StressCell rechnet mit calibration
 window = "max"            # max: höhere aus PPMS und Cernox (sicher in beide Richtungen) | cernox: nur Cernox
 margin_K = 1.0            # Reserve auf die Cernox-Temperatur
 stale_s = 15.0            # so lange gilt der letzte Wert

@@ -201,3 +201,58 @@ def test_settings_cell_choices(tmp_path):
     assert 'source = "lakeshore"   # Kommentar' in t and 'window = "cernox"' in t
     with pytest.raises(ValueError):
         settings.write(p, {"cell_source": "thermos"})
+
+
+def test_lakeshore_software_curve_and_curve_header(tmp_path):
+    class IO:
+        def __init__(self, ans):
+            self.ans, self.log = ans, []
+
+        def query(self, c):
+            self.log.append(c)
+            return self.ans[c]
+
+    p = tmp_path / "x.340"
+    p.write_text("Sensor Model:   CX-1050-SD\nSerial Number:  X98765\nData Format:    4\n\n" +
+                 "\n".join(f"{i} {math.log10(cernox_like(T)):.6f} {T}" for i, T in enumerate((300, 100, 20, 4, 2), 1)))
+    c = Curve.load(p)
+    assert (c.serial, c.model) == ("X98765", "CX-1050-SD")
+    io = IO({"SRDG? A": f"{cernox_like(20.0):.4f}", "INCRV? A": "21", "CRVHDR? 21": "CX-1050,X98765,4,325.0,1"})
+    ls = th.LakeShore(io, "336", "A", c)
+    assert ls.read()["T_cell"] == pytest.approx(20.0, rel=1e-4)
+    assert "KRDG? A" not in io.log                          # Software-Kurve: Gerät nur nach R fragen
+    assert ls.curve_info() == {"curve": 21, "name": "CX-1050", "serial": "X98765", "format": "4", "limit_K": "325.0"}
+    io.ans["INCRV? A"] = "0"
+    assert ls.curve_info()["curve"] == 0
+
+
+def test_check_instruments_runs_through_with_fake_devices(cfg, tmp_path, monkeypatch, capsys):
+    import check_instruments
+    from instruments import real
+
+    class Fake:
+        def __init__(self, addr, **kw):
+            self.addr = addr
+
+        def write(self, c):
+            pass
+
+        def query(self, c):
+            return {"*IDN?": "FAKE,1,2,3", "INCRV? A": "21", "CRVHDR? 21": "CX-1050,X98765,4,325.0,1",
+                    "KRDG? A": "+295.10", "SRDG? A": "+62.5", ":FETCH?": "+1.30000E-12,+1.0E-04,+0"}.get(c, "0")
+
+        def close(self):
+            pass
+
+    c = copy.deepcopy(cfg)
+    c["cell_thermometer"].update(source="lakeshore", model="336", input="A", address="GPIB0::12::INSTR")
+    c["paths"]["config"] = tmp_path / "config.toml"
+    monkeypatch.setattr(real, "Visa", Fake)
+    monkeypatch.setattr(real, "PPMS", lambda *a: (_ for _ in ()).throw(IOError("no MultiVu here")))
+    monkeypatch.setattr(check_instruments, "load_config", lambda *a: c)
+    monkeypatch.chdir(tmp_path)
+    check_instruments.main()
+    text = capsys.readouterr().out
+    assert "[cell thermometer] Lake Shore 336" in text and "X98765" in text and "295.1" in text
+    assert "FAIL open: OSError: no MultiVu here" in text
+    assert list(tmp_path.glob("instrument_check_*.txt"))

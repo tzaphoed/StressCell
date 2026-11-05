@@ -673,7 +673,10 @@ def build_cell_thermo(cfg, pool, cryo):
     if src == "none":
         return None
     if src == "lakeshore":
-        return th.LakeShore(pool.get(c["address"]), c.get("model", "336"), c.get("input", "A"))
+        curve = None
+        if c.get("curve_in", "device") == "software":
+            curve = Curve.load(cfg["paths"]["calibration_dir"] / c["calibration"])
+        return th.LakeShore(pool.get(c["address"]), c.get("model", "336"), c.get("input", "A"), curve)
     if src not in CELL_THERMO_SOURCES:
         raise ValueError(f"[cell_thermometer] source = {src}: use {' | '.join(CELL_THERMO_SOURCES)}")
     cp = cfg["paths"]["calibration_dir"] / c.get("calibration", "")

@@ -306,7 +306,9 @@ StressCell nutzt es an drei Stellen:</p>
 </ul>
 <table>
   <tr><th style="width:20%">Auslesung</th><th style="width:40%">config.toml [cell_thermometer]</th><th>Hinweise</th></tr>
-  <tr><td class="dev">Lake Shore</td><td><span class="mono">source = "lakeshore"</span>, <span class="mono">model</span> 218/224/335/336/350/372, <span class="mono">address</span>, <span class="mono">input</span></td><td>Das Gerät rechnet mit seiner eigenen Kurve. Am saubersten.</td></tr>
+  <tr><td class="dev">Lake Shore</td><td><span class="mono">source = "lakeshore"</span>, <span class="mono">model</span> 218/224/335/336/350/372, <span class="mono">address</span>, <span class="mono">input</span></td><td>Zwei Wege: <span class="mono">curve_in = "device"</span>: Die Kurve ist im Lake Shore geladen und dem Eingang zugewiesen, StressCell liest Kelvin.
+  <span class="mono">curve_in = "software"</span>: StressCell liest den Widerstand und rechnet mit deiner <span class="mono">.340</span>-Datei. <span class="mono">check_instruments.py</span>
+  zeigt Nummer, Name und Seriennummer der zugewiesenen Kurve und warnt, wenn die Seriennummer nicht zur Datei passt.</td></tr>
   <tr><td class="dev">PPMS-Brücke</td><td><span class="mono">source = "ppms_bridge"</span>, <span class="mono">channel</span>, <span class="mono">current_uA</span>, <span class="mono">calibration</span></td><td>Über die Puck-Pins. Kleiner Strom (10 µA oder weniger), sonst heizt sich das Cernox bei tiefer T selbst.</td></tr>
   <tr><td class="dev">DMM 4-Leiter</td><td><span class="mono">source = "dmm"</span>, <span class="mono">address</span>, <span class="mono">calibration</span></td><td>Messstrom fest und eher groß: erst oberhalb von etwa 20 K brauchbar.</td></tr>
 </table>

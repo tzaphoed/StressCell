@@ -115,6 +115,30 @@ def main():
         for _ in range(3):
             probe("read", cap.read)
 
+    ct = cfg.get("cell_thermometer", {})
+    if ct.get("source") == "lakeshore":
+        from core.thermometry import Curve
+        from instruments import thermometers
+        out(f"\n[cell thermometer] Lake Shore {ct.get('model')} input {ct.get('input')} at {ct.get('address')}")
+        io = opened.get(ct.get("address"))
+        if io is not None:
+            ls = thermometers.LakeShore(io, ct.get("model", "336"), ct.get("input", "A"))
+            info = probe("assigned curve", ls.curve_info)
+            for _ in range(3):
+                probe("read (device curve)", ls.read)
+            cp = cfg["paths"]["calibration_dir"] / ct.get("calibration", "")
+            if ct.get("calibration") and cp.is_file():
+                curve = probe(f"load {cp.name}", lambda: Curve.load(cp))
+                if curve is not None:
+                    out(f"  file: sensor {curve.model or '?'}, serial {curve.serial or '?'}, "
+                        f"{curve.T_range[0]:g} ... {curve.T_range[1]:g} K")
+                    if info and info.get("serial") and curve.serial and info["serial"] != curve.serial:
+                        out(f"  WARNING serial in the device ({info['serial']}) differs from the file ({curve.serial})")
+                    probe("read (file curve)", lambda: thermometers.LakeShore(io, ct.get("model", "336"),
+                                                                              ct.get("input", "A"), curve).read())
+            else:
+                out(f"  note no curve file {cp.name} in calibrations/: cannot compare with the device curve")
+
     out(f"\n[cryostat] MultiPyVu at {i['multipyvu_host']}:{i['multipyvu_port']}")
     cryo = probe("open", lambda: real.PPMS(i["multipyvu_host"], i["multipyvu_port"]))
     if cryo:
