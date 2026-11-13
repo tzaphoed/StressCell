@@ -6,6 +6,7 @@ austauschbare Treiber, Simulation, Sequenzer, Grenzwertprüfung an einer Stelle,
 **Das Handbuch:** [`docs/StressCell_Handbuch.pdf`](docs/StressCell_Handbuch.pdf), im Programm unter „Hilfe“ (F1).
 Es erklärt Sicherheit, Zelle, Geräte, Verkabelung, Kalibrierung, Konfiguration und die Messung Schritt für Schritt.
 Für den Laborschrank: [`docs/FC100_Geraeteauswahl.pdf`](docs/FC100_Geraeteauswahl.pdf).
+Unser Aufbau (SR830, AH 2700A, Lake Shore 372, Keithley 2400) und die Gründe: [`docs/Aufbau_Entscheidungen.md`](docs/Aufbau_Entscheidungen.md).
 
 ## Start
 

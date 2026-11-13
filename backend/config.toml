@@ -77,13 +77,15 @@ default_tol_N = 0.05
 [ac]
 # AC-Elastokalorik. Die Anregung liegt auf einer Stapelgruppe, der Offset auf der anderen.
 # Empfohlener Aufbau ohne RP100 (Handbuch, Aufbau A): SR860 SINE OUT -> R2 = 240 Ohm -> Zugstapel.
+# Unser Aufbau (Aufbau B, docs/Aufbau_Entscheidungen.md): SR830 SINE OUT -> R2 = 680 Ohm -> Zugstapel.
 enabled = true
 source = "lockin"         # lockin: Oszillator des Lock-ins | generator: Funktionsgenerator + externe Referenz
 channel = "tension"       # Zugstapel: 3,1 uF, halber Strom gegenüber der Druckgruppe
 C_F = 3.1e-6              # Datenblatt, 300 K. Fällt beim Abkühlen, siehe Handbuch "RC-Korrektur"
 gain = 1.414              # V Spitze am Stapel je V rms am Ausgang bei tiefer Frequenz. Direkt: 1,414.
                           # Mit Tegam 2350: 70,7. Mit dem Oszilloskop am Stapel messen!
-series_R_ohm = 290.0      # R2 plus 50 Ohm Ausgang. Ergibt den RC-Tiefpass, die Software rechnet ihn heraus.
+series_R_ohm = 730.0      # R2 plus 50 Ohm Ausgang. Ergibt den RC-Tiefpass, die Software rechnet ihn heraus.
+                          # SR830: R2 = 680 Ohm -> 730 Ohm, Ecke ca. 70 Hz bei 3,1 uF. SR860: 240 Ohm -> 290 Ohm.
 gain_verified = false     # ohne true läuft an echten Geräten keine Anregung
 V_max = 2.5               # größte Spitzenspannung am Stapel. Für NiMnSn reichen 0,3 bis 2 V
 current_max_A = 5e-3      # Datenblatt: 10 mA nicht überschreiten. Halber Wert als Reserve
@@ -107,9 +109,9 @@ length_mm = 1.0
 # Eigenes Thermometer an der Zelle (Cernox). Handbuch Kapitel "Zellthermometer".
 # source: none | lakeshore | ppms_bridge | dmm
 source = "lakeshore"      # dein Aufbau: Cernox am Lake Shore mit Kalibrierkurve. Modell, Adresse, Eingang prüfen!
-model = "336"             # lakeshore: 218 | 224 | 335 | 336 | 350 | 372
+model = "372"             # lakeshore: 218 | 224 | 335 | 336 | 350 | 372. Unser Aufbau: 372
 address = "GPIB0::12::INSTR"
-input = "A"               # Lake Shore Eingang (218 und 372: Nummer, z. B. "1")
+input = "1"               # Lake Shore Eingang (218 und 372: Nummer, z. B. "1"). Am 372 prüfen, wo der Cernox hängt!
 channel = 2               # ppms_bridge: Kanal der Resistivity-Option
 current_uA = 10.0         # ppms_bridge: Messstrom. Cernox heizt sich bei tiefer T sonst selbst
 calibration = "cernox.340"  # Kurve R -> T im Ordner calibrations (.340 oder csv R_ohm,T_K)
@@ -134,14 +136,15 @@ calibration = "FC100_0260.toml"   # deine Zelle, Blatt 0260-FC100-b. cell_exampl
 #          lockin_amp    Lock-in-Aux + Verstärker auf Druck, Zug nur AC (alte Variante)
 supply = "split"
 # cap:     e4980al | e4980a | hp4284a | ah2500a | ah2550a | ah2700a | lockin_cap
-cap = "e4980al"
+cap = "ah2700a"           # unser Aufbau: AH 2700A (Adresse unter capmeter)
 cryo = "multipyvu"
 # sample:  none | ppms_bridge | k2182a | dmm344xx, auch als Liste, z. B. ["ppms_bridge", "k2182a"]
 sample = "none"
 # lockin_model: sr860 | sr865 | sr830 | sr7265 | sr7270
-lockin_model = "sr860"
+lockin_model = "sr830"    # unser Aufbau: SR830, davor SR560
 lockin = "GPIB0::4::INSTR"
-lockin_vrms_max = 2.0     # SR860: 2, SR830/SR7265: 5. Mit R2 hält das den Strom unter 10 mA
+lockin_vrms_max = 5.0     # SR860: 2, SR830/SR7265: 5. Mit R2 hält das den Strom unter 10 mA
+                          # (SR830: 7,07 V Spitze / 730 Ohm = 9,7 mA, nur mit R2 = 680 Ohm!)
 
 # Funktionsgenerator statt Lock-in-Oszillator ([ac] source = "generator"):
 # generator_model: 33500b | 33600a | 33210a | 33220a. SYNC-Ausgang an den Referenzeingang.

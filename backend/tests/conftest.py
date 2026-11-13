@@ -26,6 +26,9 @@ def cfg(tmp_path):
     # Verdrahtung ohne RP100 hat eigene Tests (test_split.py).
     c["instruments"]["supply"] = "rp100"
     c["cell_thermometer"]["source"] = "none"     # eigene Tests mit Zellthermometer (test_cernox_recorder.py)
+    # Die Grundtests laufen mit SR860 und E4980AL (Aufbau A). Das Labor kann in config.toml
+    # andere Geräte eintragen (unser Aufbau B: SR830, AH2700A), die Tests bleiben davon unberührt.
+    c["instruments"].update(lockin_model="sr860", lockin_vrms_max=2.0, cap="e4980al")
     c["ac"].update(gain=25.0, series_R_ohm=0.0, V_max=20.0)
     c["paths"]["config"] = tmp_path / "config.toml"
     c["limits"]["slew_default_V_s"] = 10.0      # Tests laufen sonst minutenlang durch die Rampen
