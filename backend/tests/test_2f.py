@@ -67,3 +67,16 @@ def test_sim_reports_2f_next_to_1f(cfg):
     import csv
     rows = list(csv.DictReader(open(rec.stop()["path"], encoding="utf-8")))
     assert rows[-1]["T_2f_K"] != ""
+
+
+def test_signed_slope_follows_phase_and_tc_sign(stack):
+    from .conftest import run_steps as rs
+    rs(stack, {"op": "output", "on": True}, {"op": "measure_gain", "step": 4, "settle": 5},
+       {"op": "ac_on", "f": 20, "V": 2.0})
+    advance(stack, 5)
+    s = stack.supervisor.last
+    g, gs = s["dT_dsigma_K_MPa"], s["dT_dsigma_signed_K_MPa"]
+    assert g > 0 and abs(gs) == pytest.approx(g * abs(__import__("math").cos(__import__("math").radians(s["theta_stack"]))))
+    stack.cfg["ac"]["tc_sign"] = -1.0
+    advance(stack, 2)
+    assert stack.supervisor.last["dT_dsigma_signed_K_MPa"] == pytest.approx(-gs, rel=0.05)

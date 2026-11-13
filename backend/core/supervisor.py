@@ -216,7 +216,7 @@ class Supervisor:
         """Temperaturamplitude aus der Thermospannung. Die Kraftamplitude lässt sich am FC100 nicht
         direkt lesen, das Kapazitätsgerät ist zu langsam: sie kommt aus dF/dD (op measure_gain)."""
         out = {"T_ac_K": None, "F_ac_N": None, "dT_dsigma_K_MPa": None, "phi_RC_deg": None,
-               "theta_stack": None, "G_used": None, "T_2f_K": None}
+               "theta_stack": None, "G_used": None, "T_2f_K": None, "dT_dsigma_signed_K_MPa": None}
         T = s.get("T_sample", s.get("T"))
         if s.get("R") is None or T is None or not s.get("V_ac"):
             return out
@@ -233,6 +233,14 @@ class Supervisor:
         if G:
             out["F_ac_N"] = G * s["V_ac"]
             out["dT_dsigma_K_MPa"] = out["T_ac_K"] / (out["F_ac_N"] / self.area)
+            if out["theta_stack"] is not None:
+                # Vorzeichen: gleichphasige Komponente gegen die Stapelspannung. Anregung am Zugstapel:
+                # positive Spannung heißt Zug, also σ steigt mit ihr. tc_sign gleicht die Polung von
+                # Thermoelement und Vorverstärker aus (einmal am thermoelastischen Effekt prüfen).
+                ac = self.cfg.get("ac", {})
+                ch = 1.0 if ac.get("channel", "tension") == "tension" else -1.0
+                out["dT_dsigma_signed_K_MPa"] = (float(ac.get("tc_sign", 1.0)) * ch * out["dT_dsigma_K_MPa"]
+                                                 * math.cos(math.radians(out["theta_stack"])))
         return out
 
     def _sane_T(self, s):
@@ -567,7 +575,8 @@ class Supervisor:
                                      "T_status", "B_status", "on_T", "on_C", "set_T", "set_C", "T_eff",
                                      "sample", "X", "Y", "R", "theta", "f_ac", "V_ac", "T_ac_K",
                                      "F_ac_N", "dT_dsigma_K_MPa", "phi_RC_deg", "theta_stack", "dT_dc_K", "G_used",
-                                     "T_cell", "R_cell", "T_sample", "X2", "Y2", "R2", "theta2", "T_2f_K")}
+                                     "T_cell", "R_cell", "T_sample", "X2", "Y2", "R2", "theta2", "T_2f_K",
+                                     "dT_dsigma_signed_K_MPa")}
         row["force"] = self.force.info()
         self.publish({"type": "monitor", "data": row})
         self.history.append(row)

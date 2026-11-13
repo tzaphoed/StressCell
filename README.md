@@ -1,7 +1,7 @@
 # StressCell
 
 Messprogramm für die Razorbill FC100 im PPMS, gebaut für AC-Elastokalorik an NiMnSn. Python-Backend,
-austauschbare Treiber, Simulation, Sequenzer, Grenzwertprüfung an einer Stelle, Oberfläche im Browser.
+austauschbare Treiber, Simulation, feste Messfunktionen statt Sequenzer, Grenzwertprüfung an einer Stelle, Oberfläche im Browser.
 
 **Das Handbuch:** [`docs/StressCell_Handbuch.pdf`](docs/StressCell_Handbuch.pdf), im Programm unter „Hilfe“ (F1).
 Es erklärt Sicherheit, Zelle, Geräte, Verkabelung, Kalibrierung, Konfiguration und die Messung Schritt für Schritt.
@@ -57,7 +57,8 @@ backend/
   core/advisor.py        Inbetriebnahme-Checkliste und Rechenhilfen
   core/control.py        Kraftregler
   core/thermocouple.py   Seebeck Type E, NIST SRD 60
-  core/sequence.py       Sequenzformat, Doku im Kopf der Datei
+  core/tasks.py          feste Messfunktionen: Spannung halten, Spannungssweep, Frequenzsweep, Temperaturrampe
+  core/sequence.py       internes Schrittformat der Messfunktionen
   core/interpreter.py    Ausführung, derselbe Code für Lauf, Trockenlauf und Python
   core/runner.py         Lauf, Sitzungen, Datenablage
   core/stack.py          alles zusammen, Trockenlauf
@@ -68,7 +69,8 @@ backend/
   instruments/lockins.py SR830, SR7265, Generator, Lock-in-Kapazität
   instruments/meters.py  Nanovoltmeter und DMM
 frontend/renderer/       Oberfläche, Bibliotheken in vendor/
-sequences/               Beispielsequenzen, ece_* für die Elastokalorik
+sequences/               alte Beispielsequenzen, nur noch aus Python
+tools/                   cernox_fit.py (Cernox gegen PPMS), entropy_map.py (S(T, σ) aus C_p und g)
 calibrations/            Kalibrierung je Zelle
 docs/                    Handbuch und Geräteauswahl (HTML-Quelle, build_docs.py, render_pdf.js)
 ```

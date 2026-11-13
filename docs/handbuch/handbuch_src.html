@@ -35,7 +35,7 @@ Messung Schritt für Schritt. Stand 5. November 2026, passend zu <span class="mo
 <h1 id="ueberblick"><span class="num">1</span>Überblick</h1>
 <p>StressCell steuert die Razorbill FC100 im PPMS: Spannung an den Piezostapeln, Kraftmessung über den kapazitiven Sensor,
 Temperatur, Feld und Kammer über MultiPyVu, dazu Lock-in für die AC-Elastokalorik. Alles, was schreibt, läuft durch eine
-zentrale Grenzwertprüfung, egal ob der Befehl aus der Oberfläche, einer Sequenz oder einem Python-Skript kommt.</p>
+zentrale Grenzwertprüfung, egal ob der Befehl aus der Oberfläche, einer Messfunktion oder einem Python-Skript kommt.</p>
 
 <h2>Begriffe</h2>
 <table>
@@ -47,7 +47,7 @@ zentrale Grenzwertprüfung, egal ob der Befehl aus der Oberfläche, einer Sequen
   <tr><td class="dev">Tare</td><td>Nullpunkt der Kraft setzen. Nur ohne Last. Der erste Tare nach dem Pumpen legt den Vakuum-Nullpunkt fest.</td></tr>
   <tr><td class="dev">dF/dD, G</td><td>Steigung Kraft gegen Drive. Hängt von Probe und Temperatur ab. Der Kraftregler schätzt sie laufend, „dF/dD messen“ misst sie für die AC-Auswertung.</td></tr>
   <tr><td class="dev">ECE</td><td>Elastokalorischer Effekt: Temperaturänderung der Probe unter mechanischer Spannung.</td></tr>
-  <tr><td class="dev">Trockenlauf</td><td>Eine Sequenz läuft vor dem Start auf einer simulierten Zelle mit dem aktuellen Zustand als Anfang. Fehler fallen dort auf, nicht an der Probe.</td></tr>
+  <tr><td class="dev">Trockenlauf</td><td>Eine Messfunktion läuft vor dem Start auf einer simulierten Zelle mit dem aktuellen Zustand als Anfang. Fehler fallen dort auf, nicht an der Probe.</td></tr>
 </table>
 
 <h2>Die Seiten der Oberfläche</h2>
@@ -56,8 +56,7 @@ zentrale Grenzwertprüfung, egal ob der Befehl aus der Oberfläche, einer Sequen
   <tr><td class="dev">Start</td><td>Inbetriebnahme-Checkliste mit Live-Status. Klick auf einen Punkt öffnet das Kapitel hier.</td></tr>
   <tr><td class="dev">Zelle</td><td>Live-Werte, Verläufe, Handsteuerung. Jede Anzeige erklärt sich, wenn die Maus darüber steht.</td></tr>
   <tr><td class="dev">Elastokalorik</td><td>Live: AC an, Frequenz und Offset ändern, ΔT, Phase und dT/dσ sofort sehen. Plots ΔT über die Zeit, gegen die Offset-Kraft und ΔT/V gegen f (Plateau).</td></tr>
-  <tr><td class="dev">Messung</td><td>Sequenz wählen, prüfen, starten, pausieren. Protokoll und Messpunkte des laufenden Laufs.</td></tr>
-  <tr><td class="dev">Editor</td><td>Sequenzen aus Blöcken bauen, speichern, trocken laufen lassen.</td></tr>
+  <tr><td class="dev">Messen</td><td>Feste Messfunktionen: Spannung halten, Spannungssweep hin und zurück, Frequenzsweep, Temperaturrampe. Prüfen, starten, pausieren, stoppen. Protokoll und Messpunkte des Laufs. Es gibt keinen Editor und keine selbst gebauten Abläufe.</td></tr>
   <tr><td class="dev">Daten</td><td>Frühere Läufe ansehen, Achsen frei wählen, CSV herunterladen.</td></tr>
   <tr><td class="dev">Grenzen</td><td>Spannungsfenster mit Arbeitspunkt, Kalibrierung mit Formel und Tabelle über T, Geräte und AC-Kette, aktive Grenzwerte.</td></tr>
   <tr><td class="dev">Rechner</td><td>AC-Strom, größte Amplitude, RC-Ecke und Phase, Spannung in MPa, Dehnung, Thermospannung in mK, Fenster bei T.</td></tr>
@@ -82,7 +81,7 @@ zentrale Grenzwertprüfung, egal ob der Befehl aus der Oberfläche, einer Sequen
   <tr><td class="dev">Thermoschock</td><td>Datenblatt: nie über 10 K/min.</td><td>Rate über 10 K/min wird abgelehnt. Für genaue Kraft unter 4 K/min, mit laufendem Kraftregler 0,5 K/min (AP006).</td></tr>
   <tr><td class="dev">Kondensat, Reif</td><td>Kurzschlüsse, Sensor verschoben.</td><td>Nie mit Reif oder Kondensat auf der Zelle starten. Natürlich aufwärmen lassen oder Trockenmittel nehmen.</td></tr>
 </table>
-<p><b>STOP ALL</b> stoppt Sequenz, Skript und Kraftregler, schaltet die Anregung ab und rampt beide Stapel auf 0 V. Danach ist jeder weitere
+<p><b>STOP ALL</b> stoppt Messfunktion, Skript und Kraftregler, schaltet die Anregung ab und rampt beide Stapel auf 0 V. Danach ist jeder weitere
 Schritt gesperrt, bis jemand quittiert. Das gilt auch für Python-Skripte (<span class="mono">lab.acknowledge()</span>). Das Quittieren bitte nie automatisieren.</p>
 
 <!-- ═════════════════════════════════ 3 ═════════════════════════════════ -->
@@ -234,20 +233,24 @@ with Lab(session="nimnsn_ece") as lab:
 wait_temperature, set_field, wait_field, set_chamber, output, set_voltages, set_drive, wait_voltage, zero_drive, tare, ac_on, ac_off,
 measure_gain, frequency_sweep, temperature_sweep, goto_force, release_force, measure, wait, log, stop_all, acknowledge.</p>
 
-<h2>Sequenzen</h2>
-<p>Sequenzen sind JSON-Dateien in <span class="mono">sequences/</span>, gebaut im Editor oder von Hand. Zahlen dürfen Ausdrücke sein
-(<span class="mono">"2*F0 + 1"</span>), mit den Messwerten T, B, F, C, D als Variablen. Vor jedem Start läuft ein Trockenlauf. Beispiele:</p>
+<h2 id="messen">Messen: feste Funktionen</h2>
+<p>Statt frei gebauter Sequenzen gibt es vier feste Messfunktionen auf der Seite „Messen“. Jede hat feste Parameter mit Grenzen, baut
+daraus intern eine Schrittliste aus den getesteten Einzelbefehlen und läuft mit Trockenlauf und Guard. σ wird in MPa angegeben, negativ
+ist Druck, und mit <span class="mono">[sample] area_mm2</span> in Kraft umgerechnet.</p>
 <table>
-  <tr><th style="width:34%">Datei</th><th>Inhalt</th></tr>
-  <tr><td class="mono">force_sweep_at_4K</td><td>Abkühlen, Kraftstufen anfahren, je Stufe messen</td></tr>
-  <tr><td class="mono">force_temperature_map</td><td>Kraft gegen Temperatur auf einem Raster</td></tr>
-  <tr><td class="mono">ece_find_plateau</td><td>dF/dD messen, Frequenzsweep zur Plateausuche</td></tr>
-  <tr><td class="mono">ece_field_map</td><td>Temperatursweeps je Feld, vorher über den Übergang heizen</td></tr>
+  <tr><th style="width:26%">Funktion</th><th>Was sie tut</th></tr>
+  <tr><td class="dev">Spannung halten</td><td>Kraftregler fährt σ an und hält es, gemessen wird im Intervall über die Dauer.</td></tr>
+  <tr><td class="dev">Spannungssweep</td><td>Stufen von σ Start nach σ Ende, je Stufe regeln, warten, n-mal messen. Mit „auch zurück“ dieselben Stufen rückwärts: so sieht man Hysterese.</td></tr>
+  <tr><td class="dev">Frequenzsweep</td><td>AC an, logarithmisch von f Start bis f Ende, je Frequenz einschwingen und messen. Über der Stromgrenze senkt er die Amplitude selbst, Frequenzen nahe der AH-Brücke überspringt er.</td></tr>
+  <tr><td class="dev">Temperaturrampe</td><td>Das PPMS fährt mit der Rate, gemessen wird während der Rampe. Braucht „PPMS steuern“. Ohne: an MultiVu fahren und „Aufnahme“ nutzen.</td></tr>
 </table>
+<p>„Prüfen“ zeigt Dauer, Zahl der Punkte und Fehler, ohne etwas zu schalten. Aus Python gibt es dieselben Einzelbefehle weiterhin.
+Die alten Beispielsequenzen im Ordner <span class="mono">sequences/</span> laufen nur noch aus Python; die Oberfläche bietet sie nicht mehr an.</p>
+
 
 <h2>Daten</h2>
 <p>Jeder Lauf bekommt einen Ordner in <span class="mono">data/</span> mit <span class="mono">data.csv</span> (eine Zeile je Messpunkt),
-<span class="mono">run.log</span> und einer Kopie von Sequenz, Konfiguration und Kalibrierung. Unabhängig davon schreibt der Monitor alle 5 s
+<span class="mono">run.log</span> und einer Kopie der Schrittliste, der Konfiguration und der Kalibrierung. Unabhängig davon schreibt der Monitor alle 5 s
 eine Zeile nach <span class="mono">logs/cell/JJJJ-MM-TT.csv</span>.</p>
 <table>
   <tr><th style="width:22%">Spalte</th><th>Bedeutung</th></tr>
@@ -257,9 +260,12 @@ eine Zeile nach <span class="mono">logs/cell/JJJJ-MM-TT.csv</span>.</p>
   <tr><td class="mono">f_ac, V_ac</td><td>Anregungsfrequenz, Spitzenspannung am Stapel</td></tr>
   <tr><td class="mono">X, Y, R, theta</td><td>Lock-in-Rohwerte (V rms am Eingang, Grad gegen den Oszillator)</td></tr>
   <tr><td class="mono">phi_RC_deg, theta_stack</td><td>Phase des RC-Tiefpasses, Phase gegen die Spannung am Stapel</td></tr>
-  <tr><td class="mono">T_ac_K, F_ac_N, dT_dsigma_K_MPa</td><td>Temperaturamplitude, Kraftamplitude, elastokalorischer Koeffizient</td></tr>
+  <tr><td class="mono">T_ac_K, F_ac_N, dT_dsigma_K_MPa</td><td>Temperaturamplitude, Kraftamplitude, elastokalorischer Koeffizient (Betrag)</td></tr>
+  <tr><td class="mono">dT_dsigma_signed_K_MPa</td><td>dasselbe mit Vorzeichen aus der Phase, für das Entropiediagramm</td></tr>
+  <tr><td class="mono">X2, Y2, R2, theta2, T_2f_K</td><td>zweiter Lock-in (2f)</td></tr>
+  <tr><td class="mono">T_cell, R_cell, T_sample</td><td>Cernox an der Zelle, Temperatur für Kraft und Thermokraft</td></tr>
   <tr><td class="mono">V_tc, dT_dc_K</td><td>Thermospannung vom Nanovoltmeter, daraus ΔT</td></tr>
-  <tr><td class="mono">C_zero_pF, var_*</td><td>Nullpunkt zum Zeitpunkt, Sequenzvariablen</td></tr>
+  <tr><td class="mono">C_zero_pF, var_*</td><td>Nullpunkt zum Zeitpunkt, interne Variablen</td></tr>
 </table>
 
 <!-- ═════════════════════════════════ 8 ═════════════════════════════════ -->
@@ -284,13 +290,13 @@ Die Seite „Grenzen“ zeigt, was gerade gilt.</p>
 <table>
   <tr><th style="width:24%">Schalter</th><th style="width:34%">An</th><th>Aus</th></tr>
   <tr><td class="mono">ppms_read</td><td>T, B und Kammer werden jede Sekunde gelesen. Das Fenster folgt der Temperatur.</td><td>Kein PPMS. Die Software kennt weder T noch Kammer und nimmt das engste Fenster an: 300 K und Druckwechsel, also −20 bis +50 V je Stapel. Gedacht für Tests ohne Kryostat.</td></tr>
-  <tr><td class="mono">ppms_control</td><td>StressCell darf T, B und Kammer stellen (Oberfläche, Sequenz, Python).</td><td>Gesteuert wird an MultiVu. StressCell liest weiter, der Guard führt das Fenster nach, Befehle ans PPMS werden abgelehnt. Nie gleichzeitig eine MultiVu-Sequenz und StressCell steuern lassen.</td></tr>
+  <tr><td class="mono">ppms_control</td><td>StressCell darf T, B und Kammer stellen (Oberfläche, Messfunktionen, Python).</td><td>Gesteuert wird an MultiVu. StressCell liest weiter, der Guard führt das Fenster nach, Befehle ans PPMS werden abgelehnt. Nie gleichzeitig eine MultiVu-Sequenz und StressCell steuern lassen.</td></tr>
   <tr><td class="mono">ppms_emergency_hold</td><td>Fällt die Spannung beim Aufwärmen nicht (Quelle antwortet nicht), hält StressCell die Temperatur an, auch wenn es sonst nicht steuert.</td><td>Kein Eingriff ins PPMS, auch im Notfall nicht. Nur, wenn jemand daneben steht.</td></tr>
 </table>
 <p>Anfahrarten: Temperatur <span class="mono">fast_settle</span> oder <span class="mono">no_overshoot</span>, Feld <span class="mono">linear</span>,
 <span class="mono">no_overshoot</span> oder <span class="mono">oscillate</span>. Oscillate pendelt ins Ziel und hält das Restfeld des supraleitenden Magneten
 klein, gut für Messungen bei B = 0. Das Feld kann persistent gefahren werden (<span class="mono">"persistent": true</span>).</p>
-<p>Die Schalter „Simulation“ und „Nur lesen“ sitzen auf derselben Seite. Umschalten geht nur ohne laufende Sequenz und mit weniger als 1 V an
+<p>Die Schalter „Simulation“ und „Nur lesen“ sitzen auf derselben Seite. Umschalten geht nur ohne laufende Messfunktion und mit weniger als 1 V an
 beiden Stapeln. Das Backend wird dabei mit der neuen Konfiguration neu aufgebaut, die Seite lädt neu.</p>
 
 <h2 id="cernox">Zellthermometer (Cernox)</h2>
@@ -324,11 +330,11 @@ damit der Nachlauf herausfällt, und warnt, wenn beide Richtungen mehr als 2 % a
 </div>
 
 <h2 id="aufnahme">Einfach nur aufnehmen</h2>
-<p>Für den Fall, dass du nur Daten haben willst, ohne Sequenz: in der Titelleiste Name und Intervall eintragen, <b>● Aufnahme</b>. Jede Zeile enthält
+<p>Für den Fall, dass du nur Daten haben willst, ohne Messfunktion: in der Titelleiste Name und Intervall eintragen, <b>● Aufnahme</b>. Jede Zeile enthält
 Zeit, T PPMS, T Zelle, R Cernox, Fenster, B, Kammer, Kraft, Spannung, Kapazität, beide Stapelspannungen und Ströme, Drive, Lock-in-Werte,
 ΔT, dF/dD, dT/dσ, ΔT DC, Ziel des Kraftreglers und aktive Alarme. Ins Notizfeld getippt und Enter: Die Notiz steht in der nächsten Zeile.</p>
 <ul>
-  <li>Die Aufnahme schaltet nichts. Sie läuft im Nur-Lese-Modus, neben einer Sequenz, neben einem Python-Skript und neben Handsteuerung.</li>
+  <li>Die Aufnahme schaltet nichts. Sie läuft im Nur-Lese-Modus, neben einer Messfunktion, neben einem Python-Skript und neben Handsteuerung.</li>
   <li>Der Guard läuft wie immer mit: Alles bleibt im erlaubten Bereich, Eingriffe stehen in der Spalte <span class="mono">alarms</span>.</li>
   <li>Ablage: <span class="mono">data/&lt;Datum_Zeit&gt;_rec_&lt;Name&gt;/data.csv</span>, dazu config.toml und Kalibrierung als Kopie. In „Daten“ ansehen, als CSV herunterladen.</li>
   <li>Python: <span class="mono">lab.record_start("name", 1.0)</span>, <span class="mono">lab.record_note("…")</span>, <span class="mono">lab.record_stop()</span>.</li>
@@ -386,7 +392,7 @@ dann an einer Zelle ohne Probe auffallen. Die Seite „Start“ im Programm hakt
   <li><span class="mono">start.bat --sim 20</span>, Browser auf http://127.0.0.1:8020/.</li>
   <li>Seite „Zelle“: Ausgänge an, Drive −20 V, Tare, Kraft anfahren. Beobachten, wie Kraft und Spannung reagieren.</li>
   <li>T auf 4 K setzen, dann wieder auf 300 K. Auf „Grenzen“ zusehen, wie der Guard die Spannung beim Aufwärmen zurückfährt.</li>
-  <li>STOP ALL drücken, quittieren. Sequenz <span class="mono">ece_find_plateau</span> prüfen und laufen lassen.</li>
+  <li>STOP ALL drücken, quittieren. Auf „Messen“ einen Frequenzsweep prüfen und laufen lassen.</li>
 </ol>
 
 <h2 id="ac-kette">9.2 Anschlussbox und AC-Kette</h2>
@@ -479,7 +485,7 @@ der RC-Tiefpass aus R2 und Stapel schon herausgerechnet ist.</p>
 <ol class="steps">
   <li>Ausgänge an. Offset setzen: als Drive („Offset setzen“, z. B. −8 V) oder als Kraft („Kraft halten“, z. B. −5 N, der Regler hält sie).</li>
   <li>AC noch aus: <b>„dF/dD hier messen“</b>. Es misst mit ±4 V um den Offset. Kommt eine Meldung „implausibly small“, war der Schritt
-      innerhalb der Stapelhysterese oder die Probe trägt keine Kraft: größeren Schritt im Python- oder Sequenzbefehl nehmen.</li>
+      innerhalb der Stapelhysterese oder die Probe trägt keine Kraft: größeren Schritt im Python-Befehl nehmen (<span class="mono">lab.measure_gain(step=8)</span>).</li>
   <li><b>AC an</b> mit f und V. ΔT, Phase am Stapel, F<sub>ac</sub> und dT/dσ erscheinen sofort, der Plot ΔT über die Zeit läuft mit.</li>
   <li><b>Frequenz ändern:</b> neue f eintragen, „AC an / ändern“. Die Anregung springt auf die neue Frequenz, bei steigender
       Frequenz wird zuerst die Amplitude gesenkt. Der Plot „ΔT/V gegen Frequenz“ sammelt je f einen Mittelwert: Der flache Teil ist das Plateau.</li>
@@ -504,8 +510,14 @@ der RC-Tiefpass aus R2 und Stapel schon herausgerechnet ist.</p>
   <li>Plot <span class="mono">T_ac_K / V_ac</span> gegen <span class="mono">f_ac</span> und <span class="mono">theta_stack</span> gegen <span class="mono">f_ac</span>. Plateau wählen, Mitte nehmen.</li>
   <li><b>Kontrolle:</b> denselben Punkt bei einer zweiten Plateaufrequenz messen. Induktion durch den im Feld schwingenden Draht wächst mit f und B
       und liegt in Quadratur, das echte Signal nicht.</li>
-  <li><b>Temperatursweep</b> mit 0,3 bis 0,5 K/min bei fester Frequenz. Vor jedem Feldwert über den Übergang heizen (Hysterese, Sequenz <span class="mono">ece_field_map</span>).</li>
+  <li><b>Temperatursweep</b> mit 0,3 bis 0,5 K/min bei fester Frequenz. Vor jedem Feldwert über den Übergang heizen (Hysterese), dann die Temperaturrampe auf „Messen“.</li>
 </ol>
+
+<h2>2f gleichzeitig</h2>
+<p>Ein zweiter Lock-in misst nur: <span class="mono">[instruments] lockin2</span> mit Adresse, <span class="mono">lockin2_model</span>,
+<span class="mono">lockin2_harmonic = 2</span>. Referenz: TTL-Ausgang des ersten an REF IN des zweiten, Signal vom SR560 per BNC-T an beide Eingänge
+(das sind hochohmige Eingänge, kein Problem). Spalten <span class="mono">X2, Y2, R2, theta2, T_2f_K</span>, auf der Seite „Elastokalorik“ als
+eigene Kurve. f so legen, dass f und 2f im Plateau liegen und keines nahe der AH-Brückenfrequenz.</p>
 
 <h2>Was die Amplitude bewirkt</h2>
 <table>
@@ -549,6 +561,26 @@ F<sub>ac</sub> = G · V<sub>ac</sub>, &nbsp; σ<sub>ac</sub> = F<sub>ac</sub> / 
       Für Vergleiche über Temperatur und Feld reicht die Relativgröße.</li>
   <li>Am Übergang erster Ordnung hängt jeder Punkt am Weg: Kühlen und Heizen getrennt auswerten.</li>
   <li>Die Clausius-Clapeyron-Steigung dT<sub>t</sub>/dσ aus der Verschiebung des Übergangs mit der Vorspannung ist der robusteste Vergleichswert zur Literatur.</li>
+</ul>
+
+<h2 id="entropie">Entropie S(T, σ) aus C<sub>p</sub> und Elastokalorik</h2>
+<p>Die AC-Messung liefert die adiabatische Steigung g = (∂T/∂σ)<sub>S</sub>, in StressCell die Spalte
+<span class="mono">dT_dsigma_signed_K_MPa</span> mit Vorzeichen. Entlang einer Adiabate bleibt S gleich. Darum gilt
+S(T, σ) = S(T₀, 0), wobei T₀ die Temperatur ist, bei der die Adiabate durch (T, σ) die Spannung null erreicht, und
+S(T, 0) = ∫ C<sub>p</sub>/T dT aus der Wärmekapazität bei σ = 0. Wärmekapazität unter Spannung wird nicht gebraucht.</p>
+<pre class="code">python tools/entropy_map.py --cp cp_0T.csv --data data/&lt;Lauf1&gt;/data.csv data/&lt;Lauf2&gt;/data.csv --out S_0T.csv</pre>
+<p>Ergebnis: S, die isotherme Änderung ΔS = S(T, σ) − S(T, 0) und T₀ auf einem Raster. Je Feld eine C<sub>p</sub>-Datei und die Läufe bei diesem Feld.</p>
+<ul>
+  <li><b>Messplan:</b> bei jedem Feld Spannungssweeps (hin und zurück) bei einer Reihe von Temperaturen, oder Temperaturrampen bei einer Reihe von Spannungen,
+      immer mit laufender Anregung im Plateau und frisch gemessenem dF/dD. Am Übergang dichter messen.</li>
+  <li><b>Vorzeichen:</b> <span class="mono">[ac] tc_sign</span> einmal so einstellen, dass die Probe weit weg vom Übergang unter Zug kühlt (thermoelastisch, α &gt; 0).
+      Ein falsches Vorzeichen legt jede Adiabate auf die falsche Seite.</li>
+  <li><b>Absolutwert:</b> g weit weg vom Übergang mit T·α/(ρc) vergleichen. Plateaufaktor b⁻¹ &lt; 1, Thermokraft im Feld und dF/dD gehen direkt in g ein.</li>
+  <li><b>Grenze:</b> Nur wo die Antwort reversibel ist. Über den hysteretischen martensitischen Übergang sieht die AC-Methode nur kleine Schleifen, nicht den Sprung
+      ΔS<sub>t</sub>. Dort ΔS<sub>t</sub> aus C<sub>p</sub> (Langpuls) oder DSC nehmen und die Lage T<sub>t</sub>(σ) aus den Sweeps (siehe docs/Aufbau_Entscheidungen.md).
+      Hin- und Rückweg im Spannungssweep zeigen, wo die Hysterese anfängt.</li>
+  <li><b>Volles ΔT<sub>ad</sub> bei großen Schritten:</b> Der Messtakt von StressCell ist 1 s, die Probe verliert Wärme in rund 25 ms. Dafür Oszilloskop oder
+      Puffer eines Nanovoltmeters nehmen, nicht StressCell.</li>
 </ul>
 
 <!-- ═════════════════════════════════ 12 ════════════════════════════════ -->

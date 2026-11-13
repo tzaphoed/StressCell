@@ -31,7 +31,7 @@ Lake Shore 372 für das Zellthermometer. Die passenden Werte stehen in `backend/
 | Reserve | Keithley 2410 (die Software klemmt auf den 200-V-Bereich), Keithley 2450 (nur im SCPI-Modus, nicht TSP) | vorhanden | |
 | Wärmekapazität | PPMS-Option Heat Capacity | vorhanden | außerhalb StressCell |
 | Gegenprobe ΔS_t | DSC, M(T, H) am VSM oder MPMS | im Haus prüfen | außerhalb StressCell |
-| Optional: 2f gleichzeitig | zweiter SR830 an TTL REF des ersten, Harmonic = 2 | optional | **noch nicht in StressCell**, siehe offene Punkte |
+| Optional: 2f gleichzeitig | zweiter SR830 an TTL REF des ersten, Harmonic = 2 | optional | `lockin2`, `lockin2_model`, `lockin2_harmonic = 2` |
 
 **Bewusst nicht gewählt:**
 - **Hochspannungsverstärker für die AC-Anregung.** Für NiMnSn reichen 0,3 bis 2 V Spitze am Stapel, und die Stromgrenze der Stapel liegt bei 10 mA. Ein Verstärker würde nur das Risiko erhöhen.
@@ -62,7 +62,7 @@ Lake Shore 372 für das Zellthermometer. Die passenden Werte stehen in `backend/
 
 ## Frequenz und 2f
 
-- **Frequenz-Sweep** (Sequenz `ece_find_plateau`) bei mehreren T: tief, hoch, nahe dem Übergang. Gesucht ist das Plateau, in dem die Amplitude flach und die Phase konstant ist.
+- **Frequenz-Sweep** (Seite „Messen“ › Frequenzsweep) bei mehreren T: tief, hoch, nahe dem Übergang. Gesucht ist das Plateau, in dem die Amplitude flach und die Phase konstant ist.
 - **f so legen, dass f und 2f beide im Plateau liegen**, also in die untere Hälfte des Plateaus.
 - **Abstand zur AH-Brückenfrequenz** und ihren Vielfachen halten. Die Software lehnt Frequenzen innerhalb ±3 % ab.
 - **RC-Tiefpass:** Mit R2 = 680 Ω liegt die Ecke bei etwa 70 Hz, also mitten im erwarteten Plateau. Die Software rechnet sie heraus. Die Spannung am Stapel trotzdem mit dem Oszilloskop prüfen, weil C mit T fällt.
@@ -79,7 +79,11 @@ AC-Elastokalorik allein liefert keine Entropie. Unser Weg:
 
 1. **S(T, H, 0) absolut:** C_p(T) bei mehreren Feldern messen, S = ∫ C/T dT.
    - Am Übergang erster Ordnung die **Langpuls-Auswertung** nutzen (Lashley et al., Cryogenics 43, 369, 2003). Die 2τ-Standardauswertung verliert dort die latente Wärme.
-2. **Außerhalb der Übergänge:** (∂S/∂σ)_T = −(C/T)·(∂T/∂σ)_S. Dafür C bei σ = 0 verwenden, das ist dort eine gute Näherung.
+2. **Außerhalb der Übergänge: Adiabatenverfahren.** Entlang einer Adiabate bleibt S gleich, ihre Steigung ist die gemessene
+   g = (∂T/∂σ)_S. Also S(T, σ) = S(T₀, 0) mit T₀ am Ende der Adiabate bei σ = 0. Das braucht keine Wärmekapazität unter
+   Spannung, anders als der Weg über (∂S/∂σ)_T = −(C/T)·g mit C bei σ = 0, der nur eine Näherung ist.
+   Werkzeug: `tools/entropy_map.py` (Handbuch, Kapitel „Entropie“). g mit Vorzeichen (`dT_dsigma_signed_K_MPa`),
+   Polung einmal mit `[ac] tc_sign` am thermoelastischen Effekt festlegen: Zug kühlt weit weg vom Übergang.
 3. **Austenit-Tc** (zweite Ordnung): Dort ist die AC-Methode am stärksten. dTc/dσ kommt aus der Peaklage.
 4. **Martensitischer Übergang:**
    - ΔS_t aus C_p bzw. DSC, die Verschiebung dT_t/dσ aus den T-Sweeps bei mehreren Kräften.
@@ -117,4 +121,6 @@ Dort weicht das Gespräch ab, gilt dieses Dokument:
 - [ ] Messfrequenz der AH festlegen, mit Abstand zur ECE-Frequenz und zu 2f
 - [ ] Thermokraft des Type E im Feld: je Feld relativ auswerten oder kalibrieren
 - [ ] Erster Kontakt: `check_instruments.py` mit `read_only = true`
-- [ ] 2f gleichzeitig mit einem zweiten SR830: Dafür gibt es in StressCell noch keinen Treiber. Bis dahin f und 2f in getrennten Läufen messen (`harmonic`). Wenn die Probe driftet oder Zyklen sie schädigen, ist das ein echter Nachteil.
+- [ ] 2f gleichzeitig: zweiten SR830 anschließen (TTL des ersten an REF IN), `lockin2` eintragen
+- [ ] `[ac] tc_sign` am thermoelastischen Effekt prüfen: weit weg vom Übergang muss Zug kühlen
+- [ ] Volles ΔT_ad bei großen Spannungsschritten: Oszilloskop oder Nanovoltmeter-Puffer, der Messtakt von StressCell (1 s) ist dafür zu langsam

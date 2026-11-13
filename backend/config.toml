@@ -94,6 +94,7 @@ f_max_Hz = 5000.0
 harmonic = 1
 time_constant_s = 1.0
 preamp_gain = 100.0       # Vorverstärker vor dem Lock-in (SR560), genau wie am Gerät eingestellt
+tc_sign = 1.0             # Polung Thermoelement + SR560: so, dass Zug weit weg vom Übergang KÜHLT (thermoelastisch, alpha > 0)
 bridge_guard_frac = 0.03  # mit AH-Brücke: Detektion nicht näher als 3 % an k x 1 kHz
 G_drive_tol_V = 10.0      # dF/dD gilt nur bis so weit vom Offset, an dem es gemessen wurde
 
