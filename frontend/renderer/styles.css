@@ -77,3 +77,6 @@ code{font:12px var(--mono);background:var(--bg-secondary);padding:0 4px;border-r
 .rec-box input{width:110px;padding:4px 6px;font-size:12px}
 #rec-btn.rec-on{background:var(--danger);border-color:var(--danger);color:#fff}
 #settings-form select{max-width:200px}
+.task{border-top:1px solid var(--border);padding-top:8px;margin-top:8px}
+.task h4{margin:0 0 2px;font-size:13px}
+.task input{width:84px}

@@ -32,7 +32,7 @@ from fastapi import Body, FastAPI, HTTPException, Request, WebSocket, WebSocketD
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse  # noqa: E402
 from fastapi.staticfiles import StaticFiles                        # noqa: E402
 
-from core import advisor, fc100, settings                          # noqa: E402
+from core import advisor, fc100, settings, tasks                   # noqa: E402
 from core.config import load_config                                # noqa: E402
 from core.hub import Hub, clean                                    # noqa: E402
 from core.interpreter import StepError                             # noqa: E402
@@ -206,6 +206,33 @@ def help_page():
     if not p.exists():
         return HTMLResponse("<p>Handbuch nicht gefunden: docs/handbuch/handbuch.html</p>", status_code=404)
     return HTMLResponse(p.read_text(encoding="utf-8"))
+
+
+@app.get("/tasks")
+def tasks_list():
+    """Die festen Messfunktionen mit Parametern, Grenzen und Erklärungen."""
+    return {"tasks": tasks.definitions(), "area_mm2": State.cfg["sample"]["area_mm2"]}
+
+
+@app.post("/task/{name}")
+def task_start(name: str, body: dict = Body(default={})):
+    """Feste Messfunktion starten. Der Runner macht vorher einen Trockenlauf."""
+    try:
+        seq = tasks.build(name, body.get("params", {}), float(State.cfg["sample"]["area_mm2"]))
+    except tasks.TaskError as e:
+        raise HTTPException(400, str(e))
+    State.stack.runner.start(seq)
+    return State.stack.runner.info()
+
+
+@app.post("/task_check/{name}")
+def task_check(name: str, body: dict = Body(default={})):
+    """Nur der Trockenlauf: Dauer, Punkte, Fehler, ohne etwas zu schalten."""
+    try:
+        seq = tasks.build(name, body.get("params", {}), float(State.cfg["sample"]["area_mm2"]))
+    except tasks.TaskError as e:
+        raise HTTPException(400, str(e))
+    return clean(State.stack.dry_run(seq))
 
 
 @app.get("/record")

@@ -1,5 +1,3 @@
-import { registerBlocks, toolbox, toSequence, fromSequence, looseBlocks } from './blocks.js'
-
 const $ = s => document.querySelector(s)
 const $$ = s => [...document.querySelectorAll(s)]
 const TOKEN = document.querySelector('meta[name=stresscell-token]').content
@@ -177,8 +175,7 @@ function show(page) {
   $$('.nav').forEach(x => x.classList.toggle('active', x.dataset.page === page))
   $$('.page').forEach(p => p.classList.toggle('active', p.id === 'page-' + page))
   lastDraw = 0
-  if (page === 'editor') Blockly.svgResize(ws)
-  if (page === 'run') { reloadSeq(); drawPoints() }
+  if (page === 'run') drawPoints()
   if (page === 'data') loadRuns()
   if (page === 'setup') loadChecklist()
   if (page === 'limits') loadCalibration()
@@ -334,51 +331,29 @@ const loadCalibration = guarded(async () => {
     c.table.map(r => `<tr><td>${r.T}</td><td>${r.kappa.toFixed(4)}</td><td>${r.f0_N.toFixed(2)}</td><td>${r.C0_pF.toFixed(5)}</td><td>${r.S_fF_N.toFixed(3)}</td></tr>`).join('') : ''
 })
 
-// Sequenzen
-const reloadSeq = guarded(async () => {
-  const { files } = await get('/sequences')
-  const sel = $('#seq-list'), keep = sel.value
-  sel.replaceChildren(...files.map(f => new Option(f, f)))
-  if (files.includes(keep)) sel.value = keep
-})
-$('#seq-reload').onclick = reloadSeq
-const selected = () => get('/sequences/' + encodeURIComponent($('#seq-list').value))
+// Messen: feste Funktionen
 function report(el, r) {
   const h = r.duration_s / 3600
   el.textContent = (r.ok ? 'OK' : 'FEHLER: ' + r.error) + `\ngeschätzte Dauer ${h.toFixed(2)} h, ${r.points ?? 0} Punkte`
 }
-$('#seq-check').onclick = guarded(async () => report($('#seq-report'), await post('/sequence/check', await selected())))
-$('#seq-start').onclick = guarded(async () => { $('#run-log').textContent = ''; await post('/run/start', await selected()) })
-$('#seq-pause').onclick = guarded(() => post('/run/pause'))
-$('#seq-resume').onclick = guarded(() => post('/run/resume'))
-$('#seq-stop').onclick = guarded(() => post('/run/stop'))
+const taskParams = f => Object.fromEntries([...f.querySelectorAll('input')].map(i => [i.name, Number(i.value)]))
+const loadTasks = guarded(async () => {
+  const { tasks, area_mm2 } = await get('/tasks')
+  $('#task-area').textContent = area_mm2
+  $('#task-forms').replaceChildren(...Object.entries(tasks).map(([name, t]) => {
+    const f = document.createElement('form'); f.className = 'task card-inner'
+    f.innerHTML = `<h4 title="${esc(t.help)}">${esc(t.label)}</h4><p class="muted small">${esc(t.help)}</p><div class="row">` +
+      t.params.map(p => `<label title="${esc(p.help)} (${p.min} … ${p.max})">${esc(p.label)}${p.unit ? ' [' + esc(p.unit) + ']' : ''}<input name="${p.name}" value="${p.default}"></label>`).join('') +
+      `</div><div class="row"><button type="button" class="check">Prüfen</button><button class="primary">Start</button></div>`
+    f.querySelector('.check').onclick = guarded(async () => report($('#seq-report'), await post('/task_check/' + name, { params: taskParams(f) })))
+    f.onsubmit = guarded(async e => { e.preventDefault(); $('#run-log').textContent = ''; await post('/task/' + name, { params: taskParams(f) }); toast(`${t.label} läuft`) })
+    return f
+  }))
+})
+$('#run-pause').onclick = guarded(() => post('/run/pause'))
+$('#run-resume').onclick = guarded(() => post('/run/resume'))
+$('#run-stop').onclick = guarded(() => post('/run/stop'))
 $('#session-close').onclick = guarded(() => post('/session/close'))
-
-// Editor
-registerBlocks()
-const ws = Blockly.inject('blockly', {
-  toolbox, renderer: 'zelos', trashcan: true, sounds: false, media: '/static/vendor/media/', zoom: { controls: true, wheel: true, startScale: 0.9 },
-  theme: Blockly.Theme.defineTheme('sc', { base: Blockly.Themes.Classic, componentStyles: {
-    workspaceBackgroundColour: css('--bg-secondary'), toolboxBackgroundColour: css('--bg-card'), toolboxForegroundColour: css('--text-primary'),
-    flyoutBackgroundColour: css('--bg-card'), flyoutForegroundColour: css('--text-primary'), scrollbarColour: css('--border-light') } }),
-})
-window.__ws = ws
-const edSeq = () => {
-  if (looseBlocks(ws)) toast(`${looseBlocks(ws)} lose Blockgruppe(n) ignoriert: nur der oberste Stapel läuft`, true)
-  return toSequence(ws, $('#ed-name').value)
-}
-$('#ed-save').onclick = guarded(async () => {
-  const n = $('#ed-name').value
-  await post('/sequences/' + encodeURIComponent(n), edSeq())
-  $('#ed-msg').textContent = `gespeichert als ${n}.seq.json`
-  reloadSeq()
-})
-$('#ed-check').onclick = guarded(async () => report($('#ed-msg'), await post('/sequence/check', edSeq())))
-$('#ed-load').onclick = guarded(async () => {
-  const s = await selected()
-  $('#ed-name').value = $('#seq-list').value.replace('.seq.json', '')
-  fromSequence(ws, s)
-})
 
 // Daten
 let current = null, currentName = null
@@ -426,7 +401,7 @@ guarded(async () => {
   for (const [k, v] of Object.entries(info.identify || {})) dev['Antwort ' + k] = v
   $('#dev-table').innerHTML = rows(dev)
   $('#chain-table').innerHTML = rows(info.ac_chain || {})
-  reloadSeq()
+  loadTasks()
   connect()
   loadChecklist()
 })()

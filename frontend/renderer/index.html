@@ -10,9 +10,6 @@
   <title>StressCell</title>
   <!-- Alles lokal: der Messrechner braucht kein Internet -->
   <script src="/static/vendor/plotly.min.js"></script>
-  <script src="/static/vendor/blockly_compressed.js"></script>
-  <script src="/static/vendor/blocks_compressed.js"></script>
-  <script src="/static/vendor/blockly_en.js"></script>
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
@@ -39,8 +36,7 @@
       <button class="nav" data-page="setup" title="Checkliste vor dem ersten Einsatz, mit Live-Status">Start</button>
       <button class="nav active" data-page="cell" title="Live-Werte und Handsteuerung">Zelle</button>
       <button class="nav" data-page="ece" title="Elastokalorik live: Frequenz und Offset ändern, Signal sofort sehen">Elastokalorik</button>
-      <button class="nav" data-page="run" title="Sequenzen prüfen und starten">Messung</button>
-      <button class="nav" data-page="editor" title="Sequenzen aus Blöcken bauen">Editor</button>
+      <button class="nav" data-page="run" title="Feste Messfunktionen: Spannung halten, Spannungssweep, Frequenzsweep, Temperaturrampe">Messen</button>
       <button class="nav" data-page="data" title="Gespeicherte Läufe ansehen">Daten</button>
       <button class="nav" data-page="limits" title="Spannungsfenster, Grenzwerte, Kalibrierung, Geräte">Grenzen</button>
       <button class="nav" data-page="calc" title="Rechenhilfen: AC-Strom, RC-Ecke, Spannung, Thermospannung">Rechner</button>
@@ -167,19 +163,18 @@
         </div>
       </section>
 
-      <!-- ── Messung ─────────────────────────────────────────────────── -->
+      <!-- ── Messen: feste Funktionen ───────────────────────────────── -->
       <section id="page-run" class="page">
         <div class="grid2 wide-left">
           <div class="card">
-            <h3>Sequenz</h3>
-            <div class="row"><select id="seq-list" title="Sequenzen aus dem Ordner sequences/"></select><button id="seq-reload">Neu laden</button></div>
+            <h3>Messen</h3>
+            <p class="muted small">Feste Messfunktionen, keine selbst gebauten Abläufe. „Prüfen“ spielt die Messung auf einer simulierten Zelle
+              mit dem aktuellen Zustand durch und zeigt Dauer und Fehler. „Start“ macht diesen Trockenlauf selbst noch einmal. Spannung σ in MPa,
+              negativ ist Druck, umgerechnet mit dem Probenquerschnitt <span id="task-area"></span> mm².</p>
+            <div id="task-forms"></div>
             <div class="row">
-              <button id="seq-check" title="Läuft die Sequenz auf einer simulierten Zelle durch, mit dem aktuellen Zustand als Start. Zeigt Fehler und Dauer.">Prüfen (Trockenlauf)</button>
-              <button id="seq-start" class="primary" title="Startet nach einem automatischen Trockenlauf">Start</button>
-              <button id="seq-pause">Pause</button>
-              <button id="seq-resume">Weiter</button>
-              <button id="seq-stop">Stopp</button>
-              <button id="session-close" title="Beendet eine offene Python-Sitzung samt Kraftregler und AC">Sitzung schließen</button>
+              <button id="run-pause">Pause</button><button id="run-resume">Weiter</button><button id="run-stop">Stopp</button>
+              <button id="session-close" title="Beendet eine offene Python-Sitzung samt Kraftregler und AC">Python-Sitzung schließen</button>
             </div>
             <pre id="seq-report" class="log"></pre>
             <h3>Protokoll</h3>
@@ -191,17 +186,6 @@
             <div id="plot-points" class="plot tall"></div>
           </div>
         </div>
-      </section>
-
-      <section id="page-editor" class="page">
-        <div class="row">
-          <input id="ed-name" value="neue_sequenz" aria-label="Name der Sequenz">
-          <button id="ed-load">Ausgewählte laden</button>
-          <button id="ed-save" class="primary">Speichern</button>
-          <button id="ed-check">Prüfen (Trockenlauf)</button>
-          <span id="ed-msg" class="muted"></span>
-        </div>
-        <div id="blockly"></div>
       </section>
 
       <section id="page-data" class="page">
