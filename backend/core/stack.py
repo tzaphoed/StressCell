@@ -50,6 +50,9 @@ class Stack:
         if self.inst.lockin is not None and a.get("enabled", False) and not self.safety.read_only:
             self.inst.lockin.set_drive(a["f_min_Hz"], 0.0)     # was vor einem Neustart lief, endet hier
             self.inst.lockin.set_detection(a["harmonic"], a["time_constant_s"])
+            if getattr(self.inst, "lockin2", None) is not None:
+                self.inst.lockin2.set_detection(int(self.cfg["instruments"].get("lockin2_harmonic", 2)),
+                                                a["time_constant_s"])
 
     def stop_all(self) -> dict:
         """Sequenz, Skript und Regler stoppen, Anregung aus, beide Kanäle auf 0 V. Die Ausgänge
@@ -125,6 +128,8 @@ class Stack:
             inst.cryo = NoCryostat()
         if self.inst.cell_thermo is not None:
             inst.cell_thermo = sim_thermo.SimCell(w)
+        if getattr(self.inst, "lockin2", None) is not None:
+            inst.lockin2 = sim.SimLockIn(w)
         cal = copy.deepcopy(self.cal)
         cal._tare_file = None
         w.cal = cal                      # die Sim antwortet mit den Kalibrierdaten der echten Zelle
@@ -172,6 +177,8 @@ def build(cfg, publish=lambda ev: None, speed=None, virtual=False, noise=True, s
             inst.cryo = NoCryostat()                              # wie echt: keine Temperatur
         if cfg.get("cell_thermometer", {}).get("source", "none") != "none":
             inst.cell_thermo = sim_thermo.SimCell(w)              # Zelltemperatur der Sim, hinkt nach
+        if cfg.get("ac", {}).get("enabled", False) and cfg["instruments"].get("lockin2"):
+            inst.lockin2 = sim.SimLockIn(w)                       # zweiter Lock-in, 2f
         st = Stack(cfg, inst, clock, True, publish, world=w)
         if getattr(st.cal, "model", "linear") != "linear":
             # Die Sim antwortet wie die echte Zelle laut Blatt. Eine eigene Kopie: ein Tare im

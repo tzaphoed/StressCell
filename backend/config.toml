@@ -146,6 +146,12 @@ lockin = "GPIB0::4::INSTR"
 lockin_vrms_max = 5.0     # SR860: 2, SR830/SR7265: 5. Mit R2 hält das den Strom unter 10 mA
                           # (SR830: 7,07 V Spitze / 730 Ohm = 9,7 mA, nur mit R2 = 680 Ohm!)
 
+# 2f gleichzeitig: zweiter Lock-in, nur Detektion. Referenz: TTL-Ausgang des ersten an REF IN des
+# zweiten, Signal vom SR560 per BNC-T an beide Eingänge. Leer lassen, wenn es keinen gibt.
+lockin2 = ""              # z. B. "GPIB0::5::INSTR"
+lockin2_model = "sr830"   # sr830 | sr860 | sr865 | sr7265 | sr7270
+lockin2_harmonic = 2
+
 # Funktionsgenerator statt Lock-in-Oszillator ([ac] source = "generator"):
 # generator_model: 33500b | 33600a | 33210a | 33220a. SYNC-Ausgang an den Referenzeingang.
 generator_model = "33500b"

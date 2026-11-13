@@ -154,7 +154,7 @@ class Context:
         row = {"wall": s.get("wall"), "t": s.get("t"), "label": label, "C_zero_pF": self.st.cal.C_zero}
         for k in ("T", "T_cell", "R_cell", "B", "F", "stress_MPa", "C_pF", "loss", "V_exc", "V_T", "V_C", "I_T", "I_C", "D_set",
                   "f_ac", "V_ac", "X", "Y", "R", "theta", "T_ac_K", "F_ac_N", "dT_dsigma_K_MPa",
-                  "phi_RC_deg", "theta_stack", "dT_dc_K", "G_used"):
+                  "phi_RC_deg", "theta_stack", "dT_dc_K", "G_used", "X2", "Y2", "R2", "theta2", "T_2f_K"):
             row[k] = s.get(k)
         row.update(s.get("sample") or {})
         row.update({f"var_{k}": v for k, v in self.vars.items() if isinstance(v, (int, float))})

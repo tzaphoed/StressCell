@@ -24,7 +24,7 @@ from pathlib import Path
 COLUMNS = ("wall", "time", "t_s", "note", "T", "T_cell", "R_cell", "T_eff", "B", "chamber",
            "F", "stress_MPa", "C_pF", "loss", "V_T", "V_C", "I_T", "I_C", "D_set", "vmin", "vmax",
            "f_ac", "V_ac", "X", "Y", "R", "theta", "theta_stack", "T_ac_K", "F_ac_N", "G_used",
-           "dT_dsigma_K_MPa", "dT_dc_K", "force_target", "alarms")
+           "dT_dsigma_K_MPa", "dT_dc_K", "X2", "Y2", "R2", "theta2", "T_2f_K", "force_target", "alarms")
 SAMPLE_KEYS = ("V_tc", "R_ohm")
 
 

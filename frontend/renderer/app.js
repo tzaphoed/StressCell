@@ -230,11 +230,12 @@ $('#rec-note').onkeydown = guarded(async e => {
 const ECE_RO = [
   ['T_ac_K', 'ΔT', 'mK', 3, 1e3], ['theta_stack', 'Phase am Stapel', '°', 1, 1], ['f_ac', 'f', 'Hz', 1, 1],
   ['V_ac', 'V Spitze', 'V', 2, 1], ['F', 'Offset F', 'N', 2, 1], ['stress_MPa', 'σ', 'MPa', 1, 1], ['D_set', 'Offset D', 'V', 1, 1],
+  ['T_2f_K', 'ΔT 2f', 'mK', 3, 1e3], ['theta2', 'Phase 2f', '°', 1, 1],
   ['G_used', 'dF/dD', 'N/V', 3, 1], ['F_ac_N', 'F_ac', 'N', 3, 1], ['dT_dsigma_K_MPa', 'dT/dσ', 'mK/MPa', 3, 1e3], ['T_sample', 'T Probe', 'K', 2, 1],
 ]
 $('#ece-readouts').innerHTML = ECE_RO.map(([k, n, u]) =>
   `<div class="ro" id="ece-${k}"><div class="k">${n}</div><div><span class="v">–</span><span class="u">${u}</span></div></div>`).join('')
-const ece = { t: [], dT: [], th: [], F: [], f: [] }
+const ece = { t: [], dT: [], th: [], F: [], f: [], d2: [] }
 const fbin = new Map()            // f -> [Summe ΔT/V, Anzahl]
 let lastEce = 0
 function pushEce(d) {
@@ -243,7 +244,7 @@ function pushEce(d) {
     document.querySelector(`#ece-${k} .v`).textContent = v == null ? '–' : (v * mul).toFixed(dec)
   }
   if (d.T_ac_K == null || !d.V_ac) return
-  ece.t.push((d.t - (t0 ?? d.t)) / 60); ece.dT.push(d.T_ac_K * 1e3); ece.th.push(d.theta_stack); ece.F.push(d.F); ece.f.push(d.f_ac)
+  ece.t.push((d.t - (t0 ?? d.t)) / 60); ece.dT.push(d.T_ac_K * 1e3); ece.th.push(d.theta_stack); ece.F.push(d.F); ece.f.push(d.f_ac); ece.d2.push(d.T_2f_K == null ? null : d.T_2f_K * 1e3)
   if (ece.t.length > 4000) for (const k in ece) ece[k].splice(0, 400)
   const b = fbin.get(d.f_ac) || [0, 0]; b[0] += d.T_ac_K * 1e3 / d.V_ac; b[1] += 1; fbin.set(d.f_ac, b)
   drawEce()
@@ -254,6 +255,7 @@ function drawEce() {
   lastEce = now
   Plotly.react('plot-ece-t', [
     { x: ece.t, y: ece.dT, name: 'ΔT [mK]', line: { color: css('--highlight') } },
+    ...(ece.d2.some(v => v != null) ? [{ x: ece.t, y: ece.d2, name: 'ΔT 2f [mK]', line: { color: css('--warning'), dash: 'dot' } }] : []),
     { x: ece.t, y: ece.th, name: 'Phase [°]', yaxis: 'y2', line: { color: css('--accent-text'), width: 1 } },
   ], { ...layout('ΔT [mK]'), yaxis2: { title: 'Phase [°]', overlaying: 'y', side: 'right', range: [-180, 180], gridcolor: 'rgba(0,0,0,0)' } }, CONFIG)
   Plotly.react('plot-ece-f', [{ x: ece.F, y: ece.dT, mode: 'markers', marker: { size: 5, color: ece.t, colorscale: 'Viridis' } }],

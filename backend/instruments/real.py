@@ -723,7 +723,11 @@ def build_real(cfg, pool: VisaPool | None = None, cryo=None) -> Instruments:
     sample = build_sample(cfg, pool, cryo)
     lockin = build_lockin(cfg, pool) if cfg.get("ac", {}).get("enabled", False) else None
     cell = build_cell_thermo(cfg, pool, cryo)
-    return Instruments(supply, cap, cryo, sample, lockin=lockin, cell_thermo=cell)
+    lockin2 = None
+    if lockin is not None and i.get("lockin2"):
+        from . import lockins
+        lockin2 = lockins.Detector(pool.get(i["lockin2"]), i.get("lockin2_model", "sr830"))
+    return Instruments(supply, cap, cryo, sample, lockin=lockin, cell_thermo=cell, lockin2=lockin2)
 
 
 def configured_devices(cfg) -> list[tuple[str, str, str]]:
@@ -757,6 +761,8 @@ def configured_devices(cfg) -> list[tuple[str, str, str]]:
     for n in ([names] if isinstance(names, str) else names):
         if n in ("k2182a", "dmm344xx"):
             out.append(("voltmeter", n, i["voltmeter"]))
+    if cfg.get("ac", {}).get("enabled", False) and i.get("lockin2"):
+        out.append(("lock-in 2 (2f)", i.get("lockin2_model", "sr830"), i["lockin2"]))
     ct = cfg.get("cell_thermometer", {})
     if ct.get("source") in ("lakeshore", "dmm"):
         out.append(("cell thermometer", f"{ct['source']} {ct.get('model', '')}".strip(), ct["address"]))

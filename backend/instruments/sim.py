@@ -299,7 +299,7 @@ class SimLockIn(LockIn):
         p = w.p
         f, V = w.ac_f, w.ac_V
         z = 0j
-        if f > 0 and V > 0 and self.harmonic == 1 and not w.broken:
+        if f > 0 and V > 0 and self.harmonic in (1, 2) and not w.broken:
             g = _lerp(w.T_cell, 45.0 / 140.0, 25.0 / 400.0)
             k_c = _lerp(w.T_cell, 170.0 / 45.0, 100.0 / 25.0)
             k_s = p["sample_k_N_um"]
@@ -312,6 +312,9 @@ class SimLockIn(LockIn):
             H = 1j * wt * p["tau_i_s"] / (1 + 1j * wt * p["tau_i_s"]) / (1 + 1j * wt * p["tau_th_s"])
             v = dT * seebeck_type_e(w.T_cell) * p["preamp_gain"] * H
             z = (v + 1j * p["pickup_V_per_THz"] * p["preamp_gain"] * abs(w.B) * f * V) / math.sqrt(2.0)
+            if self.harmonic == 2:
+                # Modell: 2f aus der Krümmung, wächst mit der Amplitude und am Übergang
+                z = z * (eps / 1e-3) * (0.05 + 0.5 * peak) * (w.T_cell - Tc) / p["Tc_width_K"] / (1 + peak)
         if w.noise:
             z += complex(w.rng.gauss(0, 2e-8), w.rng.gauss(0, 2e-8))
         return {"X": z.real, "Y": z.imag, "R": abs(z), "theta": math.degrees(cmath.phase(z)), "f": f}

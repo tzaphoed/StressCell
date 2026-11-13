@@ -116,6 +116,54 @@ class SR7265(LockIn):
         self.io.close()
 
 
+class Detector(LockIn):
+    """Zweiter Lock-in, der nur misst: externe Referenz (TTL des ersten), eigene Harmonische.
+    set_drive wird nie benutzt, damit er nie etwas auf den Stapel gibt."""
+
+    def __init__(self, io, model="sr830"):
+        self.io, self.model = io, model
+        if model == "sr830":
+            io.write("OUTX 1")
+            io.write("FMOD 0")
+        elif model in ("sr860", "sr865"):
+            io.write("RSRC 1")
+        else:
+            io.write("IE 2")
+
+    def identify(self):
+        return self.io.query("ID" if self.model.startswith("sr72") else "*IDN?")
+
+    def set_drive(self, frequency_Hz, V_stack_peak):
+        raise IOError("the detection lock-in never drives")
+
+    def set_detection(self, harmonic, time_constant_s):
+        if self.model == "sr830":
+            self.io.write(f"HARM {int(harmonic)}")
+            self.io.write(f"OFLT {_nearest(SR830.TAU, time_constant_s)}")
+        elif self.model in ("sr860", "sr865"):
+            from .real import SR860
+            self.io.write(f"HARM {int(harmonic)}")
+            self.io.write(f"OFLT {_nearest(SR860.TAU, time_constant_s)}")
+        else:
+            self.io.write(f"REFN {int(harmonic)}")
+            self.io.write(f"TC {_nearest(SR7265.TAU, time_constant_s)}")
+
+    def read(self):
+        if self.model == "sr830":
+            x, y, r, th = (float(p) for p in self.io.query("SNAP? 1,2,3,4").split(","))
+            f = float(self.io.query("FREQ?"))
+        elif self.model in ("sr860", "sr865"):
+            x, y, r, th = (float(self.io.query(f"OUTP? {i}")) for i in range(4))
+            f = float(self.io.query("FREQ?"))
+        else:
+            g = lambda c: float(self.io.query(c).strip().strip("\x00"))
+            x, y, r, th, f = g("X."), g("Y."), g("MAG."), g("PHA."), g("FRQ.")
+        return {"X": x, "Y": y, "R": r, "theta": th, "f": f}
+
+    def close(self):
+        self.io.close()
+
+
 class FunctionGenerator:
     """Keysight/Agilent 33210A, 33220A, 33500B, 33600A. Amplitude als V rms an hochohmiger Last."""
 

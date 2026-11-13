@@ -203,6 +203,9 @@ class Supervisor:
             li = self._try(self.inst.lockin.read, "lockin") or {}
             s.update({"X": li.get("X"), "Y": li.get("Y"), "R": li.get("R"), "theta": li.get("theta")})
             s["f_ac"], s["V_ac"] = self.safety.ac_f, self.safety.ac_V
+        if getattr(self.inst, "lockin2", None) is not None:
+            l2 = self._try(self.inst.lockin2.read, "lockin2") or {}
+            s.update({"X2": l2.get("X"), "Y2": l2.get("Y"), "R2": l2.get("R"), "theta2": l2.get("theta")})
         if s["set_T"] is not None and s["set_C"] is not None:
             s["D_set"] = s["set_T"] - s["set_C"]
         else:
@@ -213,7 +216,7 @@ class Supervisor:
         """Temperaturamplitude aus der Thermospannung. Die Kraftamplitude lässt sich am FC100 nicht
         direkt lesen, das Kapazitätsgerät ist zu langsam: sie kommt aus dF/dD (op measure_gain)."""
         out = {"T_ac_K": None, "F_ac_N": None, "dT_dsigma_K_MPa": None, "phi_RC_deg": None,
-               "theta_stack": None, "G_used": None}
+               "theta_stack": None, "G_used": None, "T_2f_K": None}
         T = s.get("T_sample", s.get("T"))
         if s.get("R") is None or T is None or not s.get("V_ac"):
             return out
@@ -223,6 +226,8 @@ class Supervisor:
             out["theta_stack"] = (s["theta"] - out["phi_RC_deg"] + 180.0) % 360.0 - 180.0
         gain = self.cfg.get("ac", {}).get("preamp_gain", 1.0)
         out["T_ac_K"] = math.sqrt(2.0) * s["R"] / gain / seebeck_type_e(T)
+        if s.get("R2") is not None:
+            out["T_2f_K"] = math.sqrt(2.0) * s["R2"] / gain / seebeck_type_e(T)
         G = self.G_at(T, s.get("D_set"))
         out["G_used"] = G
         if G:
@@ -562,7 +567,7 @@ class Supervisor:
                                      "T_status", "B_status", "on_T", "on_C", "set_T", "set_C", "T_eff",
                                      "sample", "X", "Y", "R", "theta", "f_ac", "V_ac", "T_ac_K",
                                      "F_ac_N", "dT_dsigma_K_MPa", "phi_RC_deg", "theta_stack", "dT_dc_K", "G_used",
-                                     "T_cell", "R_cell", "T_sample")}
+                                     "T_cell", "R_cell", "T_sample", "X2", "Y2", "R2", "theta2", "T_2f_K")}
         row["force"] = self.force.info()
         self.publish({"type": "monitor", "data": row})
         self.history.append(row)

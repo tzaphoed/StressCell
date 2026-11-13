@@ -148,8 +148,9 @@ class LockIn(ABC):
 class Instruments:
     def __init__(self, supply: PiezoSupply, cap: CapacitanceMeter, cryo: Cryostat,
                  sample: SampleMeter | None = None, closers=(), lockin: LockIn | None = None,
-                 cell_thermo=None):
+                 cell_thermo=None, lockin2=None):
         self.supply = supply
+        self.lockin2 = lockin2              # zweiter Lock-in nur zur Detektion, z. B. 2f, Referenz vom ersten
         self.cell_thermo = cell_thermo      # eigenes Thermometer an der Zelle, read() -> {"T_cell", "R_cell"}
         self.cap = cap
         self.cryo = cryo
@@ -158,7 +159,7 @@ class Instruments:
         self._closers = tuple(closers)
 
     def close(self):
-        for dev in (self.lockin, self.supply, self.cap, self.cryo, self.sample, self.cell_thermo):
+        for dev in (self.lockin, self.lockin2, self.supply, self.cap, self.cryo, self.sample, self.cell_thermo):
             if dev is not None:
                 try:
                     dev.close()
