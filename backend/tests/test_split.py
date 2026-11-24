@@ -303,6 +303,19 @@ def test_bridge_crosstalk_guard(stack):
     assert sf.bridge_conflict(1000.0) is None
 
 
+def test_bridge_guard_checks_second_lockin(stack):
+    sf = stack.safety
+    stack.cfg["instruments"]["cap"] = "ah2550a"
+    assert sf.bridge_conflict(500.0) is None                 # nur ein Lock-in: 500 Hz ist frei
+    stack.cfg["instruments"].update(lockin2="GPIB0::5::INSTR", lockin2_harmonic=2)
+    why = sf.bridge_conflict(500.0)                          # 2f = 1000 Hz liegt auf der Brücke
+    assert why and "lock-in 2" in why and "1000" in why
+    assert sf.bridge_conflict(1500.0)                        # 2f = 3000 Hz, dritte Oberwelle
+    assert sf.bridge_conflict(100.0) is None                 # 2f = 200 Hz: frei
+    stack.cfg["instruments"]["lockin2"] = ""
+    assert sf.bridge_conflict(500.0) is None
+
+
 def test_frequency_sweep_skips_bridge_frequencies(stack):
     stack.cfg["instruments"]["cap"] = "ah2550a"
     ctx = run_steps(stack, {"op": "output", "on": True}, {"op": "ac_on", "f": 100, "V": 0.2},

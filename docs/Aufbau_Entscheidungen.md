@@ -25,7 +25,7 @@ Lake Shore 372 für das Zellthermometer. Die passenden Werte stehen in `backend/
 | Thermospannung (ΔT bei f) | Thermoelement Type E, 12,5 oder 25 µm, differentiell → **SR560** (Batterie, A−B) → derselbe SR830 | SR560 beschaffen oder ausleihen | `[ac] preamp_gain` = Verstärkung am SR560 |
 | Kraft (DC) | AH 2700A, Messfrequenz weg von der ECE-Frequenz | vorhanden | `cap = "ah2700a"`, `capmeter` |
 | Zellthermometer | Cernox CX-1050, **kalibriert** gekauft, auf der Thermal Link Plate nahe der Referenzlötstelle | Cernox beschaffen | `[cell_thermometer]` |
-| Auslesen Cernox | Lake Shore 372 | beschaffen | `model = "372"`, `input` am Gerät prüfen |
+| Auslesen Cernox | Lake Shore 372, gleichwertig der ältere **370** (AC-Brücke, bis 2 K mehr als genug, nur GPIB/RS-232) | beschaffen oder vorhanden | `model = "372"` bzw. `"370"`, `input` am Gerät prüfen |
 | Kryostat | PPMS (T, Rate, Feld), StressCell liest über MultiPyVu | vorhanden | `cryo = "multipyvu"` |
 | Kontrolle | Oszilloskop: Spannung am Zugstapel hinter R2, Kurvenform, `gain_verified` | im Labor | von Hand |
 | Reserve | Keithley 2410 (die Software klemmt auf den 200-V-Bereich), Keithley 2450 (nur im SCPI-Modus, nicht TSP) | vorhanden | |
@@ -116,7 +116,8 @@ Dort weicht das Gespräch ab, gilt dieses Dokument:
 - [ ] Kalibrierblatt prüfen, in `calibrations/FC100_0260.toml` `verified = true` setzen
 - [ ] R2 = 680 Ω, R1 = 15 kΩ und beide Bleeder einbauen, danach `bleeder_fitted = true`
 - [ ] Verstärkung der AC-Kette mit dem Oszilloskop am Stapel messen, danach `gain_verified = true`
-- [ ] Lake Shore 372: Eingang, Kurvenzuweisung (.340) und kleine Anregung einstellen (Eigenerwärmung bei 2 K prüfen), `input` in der Config eintragen
+- [ ] Lake Shore 370/372: Eingang und kleine Anregung einstellen (Eigenerwärmung bei 2 K prüfen), `input` in der Config eintragen
+- [ ] Kalibrierkurve ins Gerät: `python tools/lakeshore_curve.py --kurve 21 --zuweisen` (370: Platz 1 bis 20), danach `curve_in = "device"`. Erst mit `--nur-zeigen` nachsehen, was im Platz steht
 - [ ] Verstärkung am SR560 = `preamp_gain`
 - [ ] Messfrequenz der AH festlegen, mit Abstand zur ECE-Frequenz und zu 2f
 - [ ] Thermokraft des Type E im Feld: je Feld relativ auswerten oder kalibrieren

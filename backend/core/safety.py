@@ -345,17 +345,24 @@ class Safety:
     def bridge_conflict(self, f) -> str | None:
         """Die AH-Brücke regt den Kraftsensor mit bis zu 15 V bei ihrer Messfrequenz an, das koppelt
         in die Thermoelementdrähte. Liegt die Detektionsfrequenz h*f nahe einem Vielfachen davon,
-        geht das Übersprechen durch den Lock-in-Filter. Rückgabe: Begründung oder None."""
-        cap = str(self.cfg.get("instruments", {}).get("cap", ""))
+        geht das Übersprechen durch den Lock-in-Filter. Geprüft werden beide Detektoren: der erste
+        bei harmonic*f und, falls eingetragen, der zweite Lock-in bei lockin2_harmonic*f.
+        Rückgabe: Begründung oder None."""
+        inst = self.cfg.get("instruments", {})
+        cap = str(inst.get("cap", ""))
         if not cap.startswith("ah"):
             return None
         fb = 1000.0 if cap != "ah2700a" else float(self.cfg.get("capacitance", {}).get("frequency_Hz", 1000.0))
         frac = float(self.ac_cfg.get("bridge_guard_frac", 0.03))
-        fd = f * int(self.ac_cfg.get("harmonic", 1))
-        for k in (1, 2, 3):
-            if abs(fd - k * fb) <= frac * k * fb:
-                return (f"detection at {fd:g} Hz is within {frac*100:.0f} % of {k} x {fb:g} Hz, where the "
-                        f"{cap.upper()} excites the force sensor: crosstalk into the thermocouple")
+        detektoren = [("detection", int(self.ac_cfg.get("harmonic", 1)))]
+        if inst.get("lockin2"):
+            detektoren.append(("lock-in 2 detection", int(inst.get("lockin2_harmonic", 2))))
+        for name, h in detektoren:
+            fd = f * h
+            for k in (1, 2, 3):
+                if abs(fd - k * fb) <= frac * k * fb:
+                    return (f"{name} at {fd:g} Hz is within {frac*100:.0f} % of {k} x {fb:g} Hz, where the "
+                            f"{cap.upper()} excites the force sensor: crosstalk into the thermocouple")
         return None
 
     def set_ac(self, f, V, simulated=False, accept=False):

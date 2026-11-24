@@ -34,9 +34,10 @@ Die Seite „Start“ in der Oberfläche zeigt live, was vor dem ersten Einsatz 
   mit externer Referenz. AC-Kette mit Verstärkung und RC-Tiefpass, Phase gegen die Spannung am Stapel.
 - **Kraft:** E4980A/E4980AL, HP 4284A, AH2500A/2550A/2700A, Lock-in mit Stromeingang. Sperre gegen Übersprechen der AH-Brücke.
 - **Laden/Entladen:** Keithley 2182A, Keysight 34401A/34461A/34465A für die Thermospannung.
-- **Zellthermometer (Cernox):** Lake Shore 218/224/335/336/350/372, PPMS-Brücke oder DMM mit Kurve (.340/csv).
+- **Zellthermometer (Cernox):** Lake Shore 218/224/335/336/350/370/372, PPMS-Brücke oder DMM mit Kurve (.340/csv).
   Fenster nach der wärmeren Temperatur aus PPMS und Zelle, Kraft und Thermokraft mit der Zelltemperatur.
-  `tools/cernox_fit.py` kalibriert ein Cernox gegen das PPMS.
+  `tools/cernox_fit.py` kalibriert ein Cernox gegen das PPMS, `tools/lakeshore_curve.py` lädt die Kurve
+  in den Lake Shore, liest jeden Punkt zurück und weist sie dem Eingang zu.
 - **Einfach nur aufnehmen:** Aufnahme-Knopf mit Intervall und Notizen, schreibt alle wichtigen Spalten, auch im Nur-Lesen-Modus.
 - **Einstellungen:** Simulation, Nur lesen, PPMS lesen/steuern, Notfall-Halt, Zellthermometer.
 - **Oberfläche auf Deutsch:** Inbetriebnahme-Checkliste, Rechner, Kalibriertabelle über T, Gerätepanel, Erklärtexte, Handbuch.
@@ -70,7 +71,7 @@ backend/
   instruments/meters.py  Nanovoltmeter und DMM
 frontend/renderer/       Oberfläche, Bibliotheken in vendor/
 sequences/               alte Beispielsequenzen, nur noch aus Python
-tools/                   cernox_fit.py (Cernox gegen PPMS), entropy_map.py (S(T, σ) aus C_p und g)
+tools/                   cernox_fit.py (Cernox gegen PPMS), lakeshore_curve.py (Kurve ins Gerät), entropy_map.py (S(T, σ) aus C_p und g)
 calibrations/            Kalibrierung je Zelle
 docs/                    Handbuch und Geräteauswahl (HTML-Quelle, build_docs.py, render_pdf.js)
 ```
