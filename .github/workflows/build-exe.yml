@@ -11,6 +11,9 @@ on:
       - ".github/workflows/build-exe.yml"
   workflow_dispatch:
 
+permissions:
+  contents: write          # für die Release-Datei
+
 jobs:
   build:
     runs-on: windows-latest
@@ -53,3 +56,13 @@ jobs:
           name: StressCell-Windows
           path: dist/StressCell
           retention-days: 90
+      - name: ZIP als Release-Datei (stabiler Download als das Artifact)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          Compress-Archive -Path dist\StressCell -DestinationPath StressCell-Windows.zip
+          gh release delete exe-latest --yes --cleanup-tag 2>$null
+          $notes = "Automatisch gebaut aus ${{ github.ref_name }} @ ${{ github.sha }}. Entpacken, LIESMICH.txt lesen. Auf dem Messrechner nötig: NI-VISA."
+          gh release create exe-latest StressCell-Windows.zip --prerelease --target ${{ github.sha }} --title "StressCell Windows (neuester Build)" --notes $notes
+

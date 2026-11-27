@@ -19,7 +19,8 @@ start.bat              nach config.toml, für echte Geräte simulate = false
 
 Tests: `backend\venv\Scripts\python.exe -m pytest backend`
 
-**Als exe ohne Python:** GitHub baut bei jedem Push den Ordner `StressCell-Windows` (Actions › Windows-exe › Artifacts),
+**Als exe ohne Python:** GitHub baut bei jedem Push `StressCell-Windows.zip`, zu finden unter Releases › „StressCell Windows (neuester Build)“
+(Tag `exe-latest`, zusätzlich als Artifact unter Actions › Windows-exe),
 lokal `pyinstaller packaging/stresscell.spec`. Darin `StressCell.exe`, `backend\config.toml` und `LIESMICH.txt`.
 Auf dem Messrechner nötig: nur NI-VISA/NI-488.2 für die GPIB-Karte.
 
