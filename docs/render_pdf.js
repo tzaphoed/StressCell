@@ -6,6 +6,7 @@ const path = require('path')
 const jobs = [
   ['handbuch/handbuch.html', 'StressCell_Handbuch.pdf', 'StressCell Handbuch'],
   ['geraeteauswahl/geraeteauswahl.html', 'FC100_Geraeteauswahl.pdf', 'FC100 Geräteauswahl'],
+  ['inbetriebnahme/inbetriebnahme.html', 'StressCell_Inbetriebnahme.pdf', 'StressCell Inbetriebnahme'],
 ]
 
 ;(async () => {

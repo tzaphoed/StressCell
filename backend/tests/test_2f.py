@@ -28,7 +28,7 @@ class IO:
 def test_detector_sr830_external_reference_and_harmonic():
     io = IO({"SNAP? 1,2,3,4": "1e-8,2e-8,2.24e-8,63", "FREQ?": "42"})
     d = lockins.Detector(io, "sr830")
-    assert io.log[:2] == ["OUTX 1", "FMOD 0"]
+    assert io.log[:3] == ["OUTX 1", "FMOD 0", "RSLP 1"]
     d.set_detection(2, 1.0)
     assert "HARM 2" in io.log
     assert d.read()["f"] == 42.0

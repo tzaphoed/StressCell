@@ -65,7 +65,7 @@ put("frontend/renderer", "frontend/renderer")
 put("calibrations", "calibrations")
 put("sequences", "sequences")
 put("docs/handbuch/handbuch.html", "docs/handbuch/handbuch.html")
-for f in ("StressCell_Handbuch.pdf", "FC100_Geraeteauswahl.pdf", "Aufbau_Entscheidungen.md", "Checkliste_Inbetriebnahme.md"):
+for f in ("StressCell_Inbetriebnahme.pdf", "StressCell_Handbuch.pdf", "FC100_Geraeteauswahl.pdf", "Aufbau_Entscheidungen.md", "Checkliste_Inbetriebnahme.md"):
     put(os.path.join("docs", f), os.path.join("docs", f))
 put("README.md", "README.md")
 put("packaging/LIESMICH.txt", "LIESMICH.txt")

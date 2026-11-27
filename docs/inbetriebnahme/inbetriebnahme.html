@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>StressCell Inbetriebnahme</title>
+<style>
+  @page { size: A4; margin: 15mm 14mm 16mm 14mm; }
+  :root { --ink: #1d232a; --mute: #5b6670; --line: #cfd6dc; --soft: #f2f5f7; --accent: #1f5f8b; --warn: #a3471c; --ok: #2c6e3f; }
+  * { box-sizing: border-box; }
+  body { font-family: "Inter", "DejaVu Sans", Arial, sans-serif; color: var(--ink); font-size: 9.2pt; line-height: 1.42; margin: 0; background: #fff; }
+  h1 { font-size: 20pt; margin: 0 0 4pt; color: var(--accent); }
+  h2 { font-size: 13pt; color: var(--accent); border-bottom: 1.5pt solid var(--accent); padding-bottom: 2pt; margin: 14pt 0 6pt; break-after: avoid; }
+  h2.page { break-before: page; margin-top: 0; }
+  h3 { font-size: 10.2pt; margin: 9pt 0 3pt; break-after: avoid; }
+  p { margin: 3pt 0 5pt; }
+  .sub { color: var(--mute); margin-bottom: 10pt; }
+  table { width: 100%; border-collapse: collapse; margin: 4pt 0 8pt; break-inside: auto; }
+  th, td { border: 0.6pt solid var(--line); padding: 3pt 5pt; vertical-align: top; text-align: left; }
+  th { background: var(--soft); font-weight: 600; }
+  tr { break-inside: avoid; }
+  .mono, code { font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace; font-size: 8.3pt; }
+  .box { border: 0.8pt solid var(--line); border-left: 3pt solid var(--accent); background: var(--soft); padding: 5pt 8pt; margin: 6pt 0 8pt; break-inside: avoid; }
+  .warn { border-left-color: var(--warn); background: #fbf1ec; }
+  .ok { border-left-color: var(--ok); }
+  .box h4 { margin: 0 0 2pt; font-size: 9.4pt; }
+  ol.steps { padding-left: 16pt; margin: 3pt 0 6pt; }
+  ol.steps li { margin: 2pt 0; }
+  .step { border: 0.8pt solid var(--line); border-radius: 3pt; padding: 5pt 8pt 4pt; margin: 6pt 0; break-inside: avoid; }
+  .step h3 { margin-top: 0; }
+  .num { display: inline-block; background: var(--accent); color: #fff; border-radius: 50%; width: 15pt; height: 15pt; text-align: center; line-height: 15pt; font-size: 8.5pt; margin-right: 4pt; }
+  .tick { font-family: "DejaVu Sans", sans-serif; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10pt; }
+  .tag { display: inline-block; font-size: 7.6pt; padding: 0 4pt; border-radius: 2pt; background: #e3edf5; color: var(--accent); font-weight: 600; }
+  .tag.hand { background: #fbe9df; color: var(--warn); }
+  svg { width: 100%; height: auto; }
+  svg text { font-family: "Inter", "DejaVu Sans", Arial, sans-serif; }
+</style>
+</head>
+<body>
+
+<h1>StressCell Inbetriebnahme</h1>
+<p class="sub">Razorbill FC100 #0260 im PPMS, AC-Elastokalorik an NiMnSn. Aufbau B: Keithley 2400, SR830, SR560, AH 2700A,
+Lake Shore 370. Stand: Probe 310 × 170 µm², 1 mm frei. Messrechner und PPMS-Rechner sind <b>nicht</b> verbunden.</p>
+
+<div class="box warn">
+  <h4>Drei Regeln vorweg</h4>
+  <ol class="steps">
+    <li>Bis Schritt 3 läuft alles mit <span class="mono">read_only = true</span>: Die Software liest nur.</li>
+    <li>Vor jedem Umstecken am Thermoelement die Signalbox auf <b>„Kurz“</b>. Vor jedem Umstecken an den Stapeln: <b>Drive auf 0, Ausgänge aus</b>.</li>
+    <li>STOP ALL fährt alles auf 0 V. Danach geht nichts weiter, bis jemand <b>quittiert</b>. Zurückfahren ist immer erlaubt.</li>
+  </ol>
+</div>
+
+<h2>1 Was wohin: Kabel</h2>
+
+<svg viewBox="0 0 760 420" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Verkabelung">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#1d232a"/></marker></defs>
+  <rect x="300" y="150" width="170" height="150" rx="8" fill="#f2f5f7" stroke="#5b6670"/>
+  <text x="385" y="168" text-anchor="middle" font-size="12" font-weight="700">PPMS / FC100</text>
+  <text x="312" y="190" font-size="10">Zugstapel rot / weiß</text>
+  <text x="312" y="206" font-size="10">Druckstapel braun / blau</text>
+  <text x="312" y="222" font-size="10">Kraftsensor (Koax)</text>
+  <text x="312" y="238" font-size="10">Thermoelement Typ E</text>
+  <text x="312" y="254" font-size="10">Cernox (4-Leiter)</text>
+  <text x="312" y="285" font-size="9" fill="#5b6670">bedient am MultiVu-Rechner</text>
+  <rect x="180" y="30" width="140" height="80" rx="6" fill="#fff" stroke="#1f5f8b"/>
+  <text x="250" y="48" text-anchor="middle" font-size="11" font-weight="700">Anschlussbox HV</text>
+  <text x="190" y="66" font-size="9.5">R1 = 15 kΩ vor braun</text>
+  <text x="190" y="81" font-size="9.5">R2 = 680 Ω vor rot</text>
+  <text x="190" y="96" font-size="9.5">je 950 kΩ Bleeder parallel</text>
+  <rect x="20" y="20" width="120" height="44" rx="6" fill="#fff" stroke="#1d232a"/><text x="80" y="38" text-anchor="middle" font-size="11" font-weight="700">Keithley 2400</text><text x="80" y="54" text-anchor="middle" font-size="9">GPIB 24, Front</text>
+  <rect x="20" y="90" width="120" height="44" rx="6" fill="#fff" stroke="#1d232a"/><text x="80" y="108" text-anchor="middle" font-size="11" font-weight="700">SR830 #1</text><text x="80" y="124" text-anchor="middle" font-size="9">GPIB 8</text>
+  <rect x="20" y="200" width="120" height="44" rx="6" fill="#fff" stroke="#1d232a"/><text x="80" y="218" text-anchor="middle" font-size="11" font-weight="700">SR560</text><text x="80" y="234" text-anchor="middle" font-size="9">Akku, A − B, Gain 100</text>
+  <rect x="170" y="200" width="100" height="44" rx="6" fill="#fff" stroke="#1d232a"/><text x="220" y="218" text-anchor="middle" font-size="10.5" font-weight="700">Signalbox</text><text x="220" y="234" text-anchor="middle" font-size="9">Messen / Kurz</text>
+  <rect x="20" y="330" width="120" height="44" rx="6" fill="#fff" stroke="#5b6670" stroke-dasharray="4 3"/><text x="80" y="348" text-anchor="middle" font-size="11" font-weight="700">SR830 #2 (2f)</text><text x="80" y="364" text-anchor="middle" font-size="9">GPIB 9, optional</text>
+  <rect x="570" y="40" width="140" height="44" rx="6" fill="#fff" stroke="#1d232a"/><text x="640" y="58" text-anchor="middle" font-size="11" font-weight="700">Oszilloskop</text><text x="640" y="74" text-anchor="middle" font-size="9">über dem Zugstapel</text>
+  <rect x="570" y="150" width="140" height="44" rx="6" fill="#fff" stroke="#1d232a"/><text x="640" y="168" text-anchor="middle" font-size="11" font-weight="700">AH 2700A</text><text x="640" y="184" text-anchor="middle" font-size="9">GPIB 28</text>
+  <rect x="570" y="236" width="140" height="44" rx="6" fill="#fff" stroke="#1d232a"/><text x="640" y="254" text-anchor="middle" font-size="11" font-weight="700">Lake Shore 370</text><text x="640" y="270" text-anchor="middle" font-size="9">GPIB 12, Kanal 1</text>
+  <rect x="570" y="330" width="140" height="44" rx="6" fill="#fff" stroke="#1d232a"/><text x="640" y="348" text-anchor="middle" font-size="11" font-weight="700">Messrechner</text><text x="640" y="364" text-anchor="middle" font-size="9">NI-GPIB, StressCell.exe</text>
+  <g stroke="#1d232a" stroke-width="1.4" fill="none">
+    <path d="M140 42 H180" marker-end="url(#a)"/>
+    <path d="M140 112 H180" marker-end="url(#a)"/>
+    <path d="M320 70 H400 V150" marker-end="url(#a)"/>
+    <path d="M300 222 H270" marker-end="url(#a)"/>
+    <path d="M170 222 H140" marker-end="url(#a)"/>
+    <path d="M80 200 V134" marker-end="url(#a)"/>
+    <path d="M60 244 V330" marker-end="url(#a)" stroke-dasharray="5 3"/>
+    <path d="M20 112 H8 V352 H20" marker-end="url(#a)" stroke-dasharray="5 3"/>
+    <path d="M470 172 H570" marker-end="url(#a)"/>
+    <path d="M470 258 H570" marker-end="url(#a)"/>
+    <path d="M440 150 V62 H570" marker-end="url(#a)"/>
+  </g>
+  <g font-size="10" font-weight="700" fill="#1f5f8b">
+    <text x="152" y="36">②</text><text x="152" y="106">①</text><text x="280" y="216">③</text><text x="148" y="216">④</text>
+    <text x="86" y="172">⑤</text><text x="66" y="292">⑥</text><text x="12" y="250">⑦</text>
+    <text x="510" y="166">⑧</text><text x="510" y="252">⑨</text><text x="446" y="110">⑩</text>
+  </g>
+  <text x="20" y="408" font-size="9" fill="#5b6670">GPIB-Kette: Rechner → Keithley → SR830 #1 → (SR830 #2) → AH 2700A → Lake Shore 370. Gestrichelt: nur für 2f gleichzeitig.</text>
+</svg>
+
+<table>
+  <tr><th style="width:5%">Nr.</th><th style="width:30%">Von</th><th style="width:30%">Nach</th><th>Hinweis</th></tr>
+  <tr><td>①</td><td>SR830 #1 <b>SINE OUT</b> (BNC)</td><td>Anschlussbox → R2 680 Ω → <b>rot (+)</b>, Schirm → <b>weiß (−)</b></td><td>AC-Anregung auf den Zugstapel. Schirm von SINE OUT liegt im SR830 auf Gehäusemasse.</td></tr>
+  <tr><td>②</td><td>Keithley 2400 <b>Front</b> HI / LO (Bananen)</td><td>Anschlussbox → R1 15 kΩ → <b>braun (+)</b>, LO → <b>blau (−)</b></td><td>DC-Offset auf den Druckstapel. Die Software schaltet auf die Frontbuchsen.</td></tr>
+  <tr><td>③</td><td>Thermoelement (2 Adern aus dem Kryostaten)</td><td>Signalbox, Schalter „Messen / Kurz“</td><td>Beide Adern schalten gemeinsam. Innen Kupfer, verdrillt.</td></tr>
+  <tr><td>④</td><td>Signalbox, 2 × BNC</td><td>SR560 Eingang <b>A</b> und <b>B</b></td><td>Schirme nur auf der SR560-Seite anschließen, in der Box nicht mit Masse verbinden.</td></tr>
+  <tr><td>⑤</td><td>SR560 <b>OUTPUT</b> (50 Ω)</td><td>SR830 #1 Eingang <b>A</b></td><td>Ein BNC-Kabel.</td></tr>
+  <tr><td>⑥</td><td>BNC-T am Eingang A von SR830 #1</td><td>SR830 #2 Eingang <b>A</b></td><td>Nur für 2f gleichzeitig. Beide Eingänge sind hochohmig, das T schadet nicht.</td></tr>
+  <tr><td>⑦</td><td>SR830 #1 <b>TTL OUT</b> (Rückseite)</td><td>SR830 #2 <b>REF IN</b></td><td>Nur für 2f gleichzeitig. SR830 #2 läuft auf externer Referenz, die Software stellt TTL-Flanke ein.</td></tr>
+  <tr><td>⑧</td><td>Kraftsensor: Koax mit gelbem Band / schwarzem Band</td><td>AH 2700A <b>High</b> / <b>Low</b></td><td>Direkt, ohne Schalter. Schirme nur an der AH, nicht am Kryostaten.</td></tr>
+  <tr><td>⑨</td><td>Cernox 4-Leiter</td><td>Lake Shore 370, Scanner <b>Kanal 1</b></td><td>Schirme nur am 370.</td></tr>
+  <tr><td>⑩</td><td>Oszilloskop Tastkopf</td><td>über rot / weiß hinter R2</td><td>Masseklemme an <b>weiß</b>.</td></tr>
+  <tr><td>GPIB</td><td>NI-GPIB-Karte im Messrechner</td><td>Kette über alle fünf Geräte</td><td>Jede Adresse nur einmal. Gesamtlänge unter 20 m.</td></tr>
+</table>
+
+<div class="box ok">
+  <h4>Masse, so wie bei dir aufgebaut</h4>
+  <p><b>Blau (Keithley LO) und weiß</b> liegen auf der Erde, die auch am Kryostaten und am Oszilloskop hängt: richtig. Das gibt beiden Stapeln einen
+  festen Bezug. Alle Geräte an <b>eine</b> Steckdosenleiste, möglichst im selben Stromkreis wie das PPMS. <b>Nicht</b> zusätzlich an diese Erde: der
+  Thermoelementkreis (schwebt über SR560 im Akkubetrieb und SR830-Eingang auf Float), die AH-Koax-Schirme und die Cernox-Schirme.
+  Faustregel: jeder Schirm an genau einem Ende, am Gerät.</p>
+</div>
+
+<h2 class="page">2 Geräte einstellen: was du machst, was die Software macht</h2>
+<p>Die Software stellt nur, was sie für die Messung ändern muss. Alles andere bleibt so, wie du es am Gerät einstellst, und muss vor dem ersten Start stimmen.</p>
+
+<table>
+  <tr><th style="width:15%">Gerät</th><th style="width:47%"><span class="tag hand">VON HAND</span> einmal am Gerät</th><th><span class="tag">SOFTWARE</span> bei jedem Start bzw. Befehl</th></tr>
+  <tr><td><b>Keithley 2400</b></td>
+      <td>GPIB-Adresse <b>24</b>, Sprache <b>SCPI</b> (MENU › COMMUNICATION).<br><b>V-Source Protection 20 V</b> (CONFIG › SOURCE V): Hardwaregrenze, falls die Software versagt.</td>
+      <td>Frontbuchsen (nur bei Ausgang aus), Spannungsquelle, Bereich 200 V, Strombegrenzung 6 mA, Ausgang aus = 0 V statt offen, Spannung in Rampen, Ausgang an/aus.</td></tr>
+  <tr><td><b>SR830 #1</b></td>
+      <td>GPIB-Adresse <b>8</b>, Interface GPIB.<br>Eingang <b>A</b>, Shield <b>Float</b>, Coupling <b>DC</b> (unter 160 mHz Pflicht, darüber egal).<br>
+          Reserve <b>Low Noise</b>, Slope <b>24 dB/oct</b>, <b>Sync-Filter an</b> unter 200 Hz.<br><b>Line-Notch aus</b>: Die Notch-Filter drehen die Phase nahe 50 und 100 Hz.<br>
+          <b>Sensitivity</b> so, dass R bei 30 bis 80 % des Bereichs liegt. Die Software regelt sie nicht nach. OVLD darf nie leuchten.</td>
+      <td>Antworten über GPIB, interne Referenz, Frequenz, Amplitude SINE OUT (über die AC-Kette auf die Spannung am Stapel umgerechnet), Harmonische (1 oder 2), Zeitkonstante. Liest X, Y, R, θ.</td></tr>
+  <tr><td><b>SR830 #2</b><br>(nur 2f)</td>
+      <td>GPIB-Adresse <b>9</b> (ab Werk 8: umstellen!).<br>Eingang <b>A</b>, Shield <b>Float</b>, DC, Low Noise, 24 dB/oct, Sync an, Notch aus, Sensitivity wie oben (2f ist kleiner).</td>
+      <td>Externe Referenz, REF IN auf TTL steigende Flanke, Harmonische 2, Zeitkonstante. Gibt nie etwas aus.</td></tr>
+  <tr><td><b>SR560</b></td>
+      <td>Alles, siehe nächste Tabelle. Die Software spricht den SR560 nicht an.</td>
+      <td>Rechnet mit <span class="mono">[ac] preamp_gain</span>. Der Wert muss gleich dem Gain am Gerät sein.</td></tr>
+  <tr><td><b>AH 2700A</b></td>
+      <td>GPIB-Adresse <b>28</b>. Mittelung so, dass eine Messung unter etwa 1 s dauert. Ausgabe mit Feldnamen (C=, L=, V=), so wie ab Werk.
+          Im Gerätecheck müssen drei Werte um <b>1,31 pF</b> (290 K, Luft) kommen.</td>
+      <td>Messfrequenz (<span class="mono">[capacitance] frequency_Hz</span>, 1000 Hz), Anregung 1 V rms. Liest C, Verlust, Anregung.</td></tr>
+  <tr><td><b>Lake Shore 370</b></td>
+      <td>GPIB-Adresse <b>12</b>. Scanner fest auf <b>Kanal 1</b>, <b>Autoscan aus</b>.<br>Anregung: Spannungsanregung, klein. Test bei 2 K: eine Stufe hoch, steigt T um mehr als wenige mK, ist sie zu groß.<br>
+          Kurve im Gerät nur, wenn du an der Front Kelvin sehen willst (StressCell rechnet selbst).</td>
+      <td>Nichts. Liest nur den Widerstand (<span class="mono">RDGR?</span>) und rechnet T mit <span class="mono">calibrations/cernox_ppms.340</span>.</td></tr>
+  <tr><td><b>PPMS</b></td>
+      <td>Alles am MultiVu-Rechner: Temperatur, Rate, Feld, Kammer. <b>Utilities › Log Data</b> mit T, Feld und Kammerdruck, Intervall 1 bis 5 s. Uhr stellen.</td>
+      <td>Nichts. Keine Verbindung (<span class="mono">ppms_read = false</span>).</td></tr>
+  <tr><td><b>Oszilloskop</b></td><td>Von Hand, nur für die Prüfung der AC-Kette.</td><td>Nichts.</td></tr>
+</table>
+
+<h3>SR560</h3>
+<table>
+  <tr><th style="width:22%">Einstellung</th><th style="width:28%">Wert</th><th>Warum</th></tr>
+  <tr><td>Stromversorgung</td><td><b>Akku</b>, Netzkabel ab</td><td>kein Netzbrumm, keine Masseschleife. Akkus vorher laden.</td></tr>
+  <tr><td>Source</td><td><b>A − B</b></td><td>Thermoelement differentiell, Gleichtakt fällt heraus.</td></tr>
+  <tr><td>Coupling</td><td><b>DC</b></td><td>AC-Kopplung (0,03 Hz) dreht die Phase bei 1 Hz um etwa 2°.</td></tr>
+  <tr><td>Filter</td><td><b>Tiefpass 6 dB/oct</b>, Grenze <b>≥ 100 × f</b> (z. B. 100 kHz), <b>kein Hochpass</b></td><td>Die Software rechnet die Filterphase nicht heraus.</td></tr>
+  <tr><td>Gain</td><td><b>100</b> (bei tiefer T 500 bis 1000)</td><td>gleich <span class="mono">[ac] preamp_gain</span> in config.toml.</td></tr>
+  <tr><td>Gain mode</td><td><b>Low Noise</b></td><td></td></tr>
+  <tr><td>Invert</td><td><b>aus</b></td><td>Die Polung legt <span class="mono">[ac] tc_sign</span> fest.</td></tr>
+  <tr><td>Overload-LED</td><td>darf nie leuchten</td><td>sonst Gain runter.</td></tr>
+</table>
+
+<h3>config.toml (backend\config.toml neben der exe)</h3>
+<table>
+  <tr><th style="width:34%">Eintrag</th><th style="width:22%">Wert</th><th>Wann ändern</th></tr>
+  <tr><td class="mono">[mode] simulate</td><td class="mono">false</td><td>für echte Geräte</td></tr>
+  <tr><td class="mono">[mode] read_only</td><td class="mono">true → false</td><td>true bis Schritt 3</td></tr>
+  <tr><td class="mono">[instruments.*] bleeder_fitted</td><td class="mono">true</td><td>beide Stellen, wenn die Bleeder eingelötet sind. Sonst startet nichts.</td></tr>
+  <tr><td class="mono">calibrations\FC100_0260.toml verified</td><td class="mono">true</td><td>nach Vergleich mit dem Papierblatt. Sonst ist der Kraftregler gesperrt.</td></tr>
+  <tr><td class="mono">[ac] gain_verified</td><td class="mono">true</td><td>nach Schritt 4 (Oszilloskop). Sonst keine AC-Anregung.</td></tr>
+  <tr><td class="mono">[ac] preamp_gain</td><td class="mono">100</td><td>wenn du den Gain am SR560 änderst</td></tr>
+  <tr><td class="mono">[limits] drive_cap_V</td><td class="mono">1.2</td><td>erst nach dF/dD hochsetzen, siehe Schritt 7</td></tr>
+  <tr><td class="mono">[limits] force_max_N</td><td class="mono">1.5</td><td>28 MPa. 100 MPa wären 5,3 N.</td></tr>
+  <tr><td class="mono">[instruments.compression] terminals</td><td class="mono">"front"</td><td></td></tr>
+  <tr><td class="mono">[mode] ppms_read</td><td class="mono">false</td><td>bleibt aus</td></tr>
+</table>
+<p>Änderungen an config.toml gelten nach einem Neustart von StressCell. Die Schalter auf der Seite „Einstellungen“ wirken sofort.</p>
+
+<h2 class="page">3 Ablauf: von der ersten Messung bis zum Temperatursweep</h2>
+
+<div class="step"><h3><span class="num">0</span>Software</h3>
+<ol class="steps">
+  <li>Am Messrechner <b>NI-VISA / NI-488.2</b> installieren, GPIB-Karte in NI MAX prüfen.</li>
+  <li><span class="mono">StressCell-Windows.zip</span> nach <span class="mono">C:\StressCell</span> entpacken (nicht nach „Programme“).</li>
+  <li><b>Simulation.bat</b>: Oberfläche kennenlernen. Seiten: Start, Zelle, Elastokalorik, Messen, Daten, Grenzen, Rechner, Einstellungen, Hilfe.</li>
+</ol></div>
+
+<div class="step"><h3><span class="num">1</span>Erster Kontakt, nur lesen (Raumtemperatur, Luft)</h3>
+<ol class="steps">
+  <li>Geräte nach Tabelle 2 einstellen. In config.toml <span class="mono">simulate = false</span>, <span class="mono">read_only = true</span>.</li>
+  <li><b>Geraete pruefen.bat</b>. Bericht in <span class="mono">logs\instrument_check_*.txt</span>. Erwartet: jedes Gerät antwortet auf <span class="mono">*IDN?</span>,
+      Kapazität ≈ 1,312 pF, Lake Shore liefert einen Widerstand (bei Raumtemperatur etwa 41 Ω).</li>
+  <li>Die Zelltemperatur bleibt bei Raumtemperatur <b>leer</b>: Die Cernox-Kurve endet bei 265,6 K. Dann gilt das 300-K-Fenster. Das ist so gewollt.</li>
+  <li><b>StressCell starten.bat</b>, Seite <b>Start</b>: Was rot ist, ist noch offen.</li>
+</ol></div>
+
+<div class="step"><h3><span class="num">2</span>Signalweg Thermoelement prüfen (ohne Spannung)</h3>
+<ol class="steps">
+  <li>Signalbox auf „Messen“. SR830 #1 bei der geplanten Frequenz (z. B. 13 Hz, nicht 50/100 Hz), AC aus.</li>
+  <li>Rauschen von R ansehen, τ = 1 s. Taucht 50 Hz oder 100 Hz auf: Verbindungen einzeln lösen, bis es weg ist (Masseschleife).</li>
+  <li>Kurz auf „Kurz“: R muss deutlich kleiner werden. Sonst kommt das Signal von woanders.</li>
+</ol></div>
+
+<div class="step"><h3><span class="num">3</span>Erste Spannung (Raumtemperatur, Luft)</h3>
+<ol class="steps">
+  <li>Keithley: V-Source Protection 20 V geprüft. config.toml: <span class="mono">read_only = false</span>, neu starten.</li>
+  <li>Seite <b>Zelle</b> › <b>Ausgänge an</b> (beide auf 0 V). Dann <b>Drive D = −1 V</b> setzen (Druck): Die Kraft muss <b>negativ</b> werden.
+      D = +1 V: positiv. Stimmt das Vorzeichen nicht, sofort <b>Drive auf 0</b> und Kalibrierdatei prüfen.</li>
+  <li><b>dF/dD messen</b>. Die Software wählt den Schritt so, dass er in die 1,2 V passt. Erwartet: deutlich unter 1 N/V, weil Probe und Kleber nachgeben.</li>
+  <li><b>Drive auf 0</b>, <b>Tare</b> (Nullpunkt in Luft).</li>
+</ol></div>
+
+<div class="step"><h3><span class="num">4</span>AC-Kette mit dem Oszilloskop</h3>
+<ol class="steps">
+  <li>Seite <b>Elastokalorik</b>: <span class="mono">f = 5 Hz</span>, <span class="mono">V = 0,5 V</span> Spitze, <b>AC an</b>. Vorher kurz <span class="mono">gain_verified = true</span> nur zum Test setzen, sonst ist AC gesperrt.</li>
+  <li>Oszilloskop über dem Zugstapel: erwartet <b>0,5 V Spitze</b> (± wenige %). Dann f = 70 Hz: Auch dort müssen 0,5 V ankommen, weil die Software die RC-Ecke von R2 und Stapel (etwa 70 Hz) herausrechnet und SINE OUT entsprechend anhebt. Gegen SINE OUT liegt die Stapelspannung dann etwa 45° zurück. Fehlt bei 70 Hz Amplitude, stimmt C oder R in <span class="mono">[ac]</span> nicht (C fällt beim Abkühlen, bei tiefer T wiederholen).</li>
+  <li>Passt es: <span class="mono">gain_verified = true</span> stehen lassen. Passt es nicht: <span class="mono">[ac] gain</span> bzw. <span class="mono">series_R_ohm</span> korrigieren.</li>
+  <li><b>AC aus</b>.</li>
+</ol></div>
+
+<div class="step"><h3><span class="num">5</span>Pumpen und Nullpunkt im Vakuum</h3>
+<ol class="steps">
+  <li>Am MultiVu-Rechner auf <b>HiVac</b>. Uhrzeit notieren. StressCell kennt den Kammerzustand nicht und begrenzt deshalb auf 50 V je Stapel (mit 1,2 V egal).</li>
+  <li>Die Kraft springt um einige 10 N (der Sensor gibt Wasser ab). Nach Möglichkeit 24 h pumpen.</li>
+  <li>Bei Raumtemperatur, Drive 0, ohne Last: <b>Tare, Versatz annehmen</b>.</li>
+</ol></div>
+
+<div class="step"><h3><span class="num">6</span>Abkühlen und erste Elastokalorik im Austenit</h3>
+<ol class="steps">
+  <li>In MultiVu langsam abkühlen (≤ 2 K/min). In StressCell <b>● Aufnahme</b> mit 5 s laufen lassen. <b>Kraft beobachten</b>: Die thermische Kraft begrenzt keine Spannungsgrenze.
+      Nähert sie sich 1 N, Temperatur anhalten und entscheiden.</li>
+  <li>Bei etwa <b>150 K</b> (Austenit, von oben angefahren, nie unter Ms): Drive auf −1 V (Druck-Offset), <b>dF/dD hier messen</b>.</li>
+  <li><b>Messen › Frequenzsweep</b>: 1 bis 500 Hz, 15 Punkte, V = 0,2 V, Einschwingen ≥ 5 τ. Gesucht: Plateau, Amplitude flach, Phase konstant.</li>
+  <li><span class="mono">tc_sign</span> prüfen: Weit weg vom Übergang muss Zug kühlen. Sonst <span class="mono">[ac] tc_sign = -1</span>.</li>
+  <li>Bei etwa 50 K (Martensit, Übergang einmal ganz durchlaufen) denselben Sweep. Messfrequenz so wählen, dass f und 2f in beiden Plateaus liegen
+      und mehr als 3 % von 1 kHz (AH) und ihren Vielfachen entfernt sind.</li>
+</ol>
+<p><b>Faustregel AC:</b> Die AC-Kraft muss kleiner bleiben als der Druck-Offset, sonst zieht jede Halbwelle an der Probe. Die AC-Spitze zählt in die 1,2 V mit.</p></div>
+
+<div class="step"><h3><span class="num">7</span>Spannungsgrenze anheben</h3>
+<p>Mit 1,2 V kommen bei dieser Probe nur Bruchteile eines Newtons an. Mit dem gemessenen dF/dD = G:</p>
+<p class="mono">drive_cap_V ≈ Zielkraft / G &nbsp;&nbsp; Beispiel: 20 MPa × 0,0527 mm² = 1,05 N, G = 0,1 N/V → etwa 11 V</p>
+<p>Schrittweise hochsetzen (neu starten). <span class="mono">force_max_N</span> bleibt die Sicherung an der gemessenen Kraft. Über 20 V nicht ohne Rücksprache:
+Bis 20 V liegt jede erlaubte Spannung bei jeder Temperatur im Fenster, darüber braucht das Aufwärmen Aufsicht.</p></div>
+
+<div class="step"><h3><span class="num">8</span>Temperatursweep</h3>
+<ol class="steps">
+  <li><b>Vorher</b> dF/dD bei mehreren Temperaturen im Sweepbereich messen (alle 10 bis 20 K, AC dafür aus). Live zeigt die Software dT/dσ nur innerhalb ±2 K
+      eines gemessenen Punkts, ΔT immer.</li>
+  <li>Offset einstellen: <b>Elastokalorik › Offset F, Kraft halten</b> (Regler hält die Kraft, auch wenn sie sich thermisch ändert) oder fester Drive.</li>
+  <li><b>AC an</b> mit der gewählten f und V. Lock-in: τ ≈ 1 bis 3 s.</li>
+  <li><b>● Aufnahme</b> starten (Intervall 2 bis 5 s), Notiz mit Feld, Rate, Richtung.</li>
+  <li>Am MultiVu-Rechner die Rampe starten: <b>0,3 bis 0,5 K/min</b>, Log Data läuft. Durch den Übergang einmal kühlen, einmal heizen.</li>
+  <li>Für 2f im selben Durchlauf: SR830 #2 angeschlossen und <span class="mono">lockin2 = "GPIB0::9::INSTR"</span>. Ohne zweiten Lock-in: 2f in einem eigenen Durchlauf (Harmonische 2), dann aber nicht exakt derselbe Zustand.</li>
+  <li>Danach: <b>Aufnahme stoppen</b>, AC aus, Regler lösen, Drive auf 0.</li>
+</ol></div>
+
+<div class="step"><h3><span class="num">9</span>Auswertung: PPMS-Daten dazu</h3>
+<ol class="steps">
+  <li>MultiVu-Log auf den Messrechner kopieren.</li>
+  <li><span class="mono">StressCell.exe merge data\&lt;Ordner&gt;\data.csv ppms_log.dat --offset &lt;s&gt;</span> → <span class="mono">data_ppms.csv</span> mit T_ppms_K, B_ppms_T, P_ppms_Torr.
+      <span class="mono">--offset</span>: Sekunden, die die PPMS-Uhr vorgeht.</li>
+  <li>In jeder Zeile stehen auch die Rohwerte <span class="mono">R_cell, C_pF, X, Y, X2, Y2</span>. T, Kraft und ΔT lassen sich später mit besserer Kalibrierung neu rechnen.
+      ΔT im Feld: Thermokraft von Typ E hängt von B ab, nachträglich korrigieren.</li>
+</ol></div>
+
+<h2>4 Wenn etwas passiert</h2>
+<table>
+  <tr><th style="width:32%">Was</th><th>Was tun</th></tr>
+  <tr><td>Alarm, Lauf gestoppt</td><td>Seite Start bzw. Kopfzeile: Grund lesen, beheben, <b>Quittieren</b>. Zurückfahren geht immer.</td></tr>
+  <tr><td>Kraft fällt plötzlich</td><td>Probenbrucherkennung fährt auf 0 V und sperrt. Probe ansehen, erst dann quittieren.</td></tr>
+  <tr><td>„Lichtbogen oder Kurzschluss“</td><td>Ausgänge sind aus. Verkabelung prüfen, Kammerdruck prüfen, erst dann quittieren.</td></tr>
+  <tr><td>Keine Zelltemperatur</td><td>Über 265,6 K normal (Kurvenende). Sonst Lake Shore, Kanal, Kabel. Bis dahin gilt das 300-K-Fenster.</td></tr>
+  <tr><td>OVLD am SR830 oder SR560</td><td>Sensitivity bzw. Gain anpassen. preamp_gain mitändern.</td></tr>
+  <tr><td>Rechner abgestürzt</td><td>Der Keithley hält seine Spannung. Bei ≤ 20 V unkritisch. Trotzdem: Drive am Gerät auf 0, Ausgang aus, erst dann neu starten.</td></tr>
+</table>
+
+</body>
+</html>

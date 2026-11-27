@@ -25,4 +25,4 @@ Was wo liegt
   backend\config.toml   Geräte, Grenzen, Probe. Vor dem ersten Einsatz durchgehen!
   calibrations\         Kraftkalibrierung der Zelle und Cernox-Kurve
   data\, logs\          Messdaten und Protokolle (legt das Programm an)
-  docs\                 Handbuch (auch im Programm unter Hilfe, F1), Checkliste
+  docs\                 StressCell_Inbetriebnahme.pdf (zuerst lesen), Handbuch (auch unter Hilfe, F1), Checkliste

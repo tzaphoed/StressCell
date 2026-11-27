@@ -409,6 +409,20 @@ class Interpreter:
             raise StepError("measure_gain: switch the AC drive off first")
         c.sup.force.stop()
         D0 = c.safety.drive()
+        # Schritt an das erlaubte Fenster anpassen (drive_cap_V, Temperatur, Kammer): lieber ein kleinerer
+        # Schritt als ein Abbruch. Unter 0,2 V liegt man in der Stapelhysterese, dann lieber gar nicht.
+        req = step
+        while step >= 0.2:
+            try:
+                c.safety.check_drive(D0 - step)
+                c.safety.check_drive(D0 + step)
+                break
+            except LimitError:
+                step *= 0.8
+        if step < 0.2:
+            raise StepError(f"measure_gain: no room for a step around D = {D0:g} V inside the voltage window")
+        if step < req:
+            c.log(f"measure_gain: step reduced from {req:g} V to {step:.2f} V by the voltage window")
         F = []
         for D in (D0 - step, D0 + step, D0 - step, D0 + step):
             c.safety.set_drive(D)

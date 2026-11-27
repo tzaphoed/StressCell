@@ -821,3 +821,13 @@ def test_long_gap_does_not_legalise_a_low_reading(stack):
     stack.inst.cryo.read = lambda: {**orig(), "T": 5.0}
     advance(stack, 1500)
     assert stack.safety.window() == (-20.0, 120.0)
+
+
+def test_measure_gain_shrinks_step_to_drive_cap(stack):
+    free_force(stack)
+    stack.cfg["limits"]["drive_cap_V"] = 1.2
+    stack.supervisor.force.c["G_min"] = 1e-4             # die Sim-Zelle ist bei kleinem Schritt weich
+    stack.safety.output_on()
+    run_steps(stack, {"op": "measure_gain", "step": 4, "settle": 2})
+    assert stack.supervisor.G_table and stack.supervisor.G_table[-1][1] > 0
+    assert max(abs(v) for v in stack.safety.peaks().values()) <= 1.2 + 1e-6

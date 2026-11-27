@@ -125,6 +125,7 @@ class Detector(LockIn):
         if model == "sr830":
             io.write("OUTX 1")
             io.write("FMOD 0")
+            io.write("RSLP 1")                       # REF IN auf TTL, steigende Flanke (TTL OUT des ersten)
         elif model in ("sr860", "sr865"):
             io.write("RSRC 1")
         else:
