@@ -153,13 +153,13 @@ cryo = "multipyvu"
 sample = "none"
 # lockin_model: sr860 | sr865 | sr830 | sr7265 | sr7270
 lockin_model = "sr830"    # unser Aufbau: SR830, davor SR560
-lockin = "GPIB0::4::INSTR"
+lockin = "GPIB0::8::INSTR"    # SR830 Werkseinstellung 8
 lockin_vrms_max = 5.0     # SR860: 2, SR830/SR7265: 5. Mit R2 hält das den Strom unter 10 mA
                           # (SR830: 7,07 V Spitze / 730 Ohm = 9,7 mA, nur mit R2 = 680 Ohm!)
 
 # 2f gleichzeitig: zweiter Lock-in, nur Detektion. Referenz: TTL-Ausgang des ersten an REF IN des
 # zweiten, Signal vom SR560 per BNC-T an beide Eingänge. Leer lassen, wenn es keinen gibt.
-lockin2 = ""              # z. B. "GPIB0::5::INSTR"
+lockin2 = ""              # z. B. "GPIB0::9::INSTR" (zweiter SR830 auf 9 umstellen, Werk ist auch 8)
 lockin2_model = "sr830"   # sr830 | sr860 | sr865 | sr7265 | sr7270
 lockin2_harmonic = 2
 

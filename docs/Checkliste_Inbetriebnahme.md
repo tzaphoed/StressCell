@@ -9,7 +9,7 @@ Handbuch Kapitel 5 (Verkabelung) und 9 (Schritt für Schritt).
 |---|---|---|---|---|
 | ☐ | **Keithley 2400** (DC-Offset) | HI → **R1 = 15 kΩ** → **braun (+)** Druckstapel, LO → **blau (−)**. Front- oder Rückbuchsen: am Gerät dieselben wählen wie verkabelt | GPIB 24 | `[instruments.compression] address` |
 | ☐ | Bleeder Druckstapel | **1 MΩ, ≥ 500 V** direkt zwischen braun und blau, zellseitig von R1 | | `bleeder_fitted = true` |
-| ☐ | **SR830 #1** (AC-Anregung + Detektion) | SINE OUT → **R2 = 680 Ω** → **rot (+)** Zugstapel, Schirm SINE OUT → **weiß (−)** | GPIB 4 | `lockin`, `[ac] series_R_ohm = 730` |
+| ☐ | **SR830 #1** (AC-Anregung + Detektion) | SINE OUT → **R2 = 680 Ω** → **rot (+)** Zugstapel, Schirm SINE OUT → **weiß (−)** | GPIB 8 | `lockin`, `[ac] series_R_ohm = 730` |
 | ☐ | Bleeder Zugstapel | **1 MΩ, ≥ 500 V** zwischen rot und weiß, zellseitig von R2 | | `bleeder_fitted = true` |
 | ☐ | **SR560** (Vorverstärker) | Eingang A und B ← Signalbox ← Thermoelement. OUTPUT (50 Ω) → SR830 #1 Eingang A | keiner | `[ac] preamp_gain` |
 | ☐ | Signalbox Thermoelement | zweipoliger Schalter „Messen / Kurz“, innen Kupfer, verdrillt. Vor jedem Umstecken auf „Kurz“ | | |
@@ -18,7 +18,7 @@ Handbuch Kapitel 5 (Verkabelung) und 9 (Schritt für Schritt).
 | ☐ | **Lake Shore 370** + Scanner | Cernox 4-Leiter (I+, I−, V+, V−, paarweise verdrillt) an Scannerkanal 1 | GPIB 12 | `[cell_thermometer] input = "1"` |
 | ☐ | **PPMS** | MultiVu läuft, darin der MultiPyVu-Server | Netzwerk, Port 27183 | `multipyvu_host` |
 | ☐ | Oszilloskop | Tastkopf über den Zugstapel (hinter R2), **Masseklemme an weiß** (Lock-in-Seite), nie an die Keithley-Seite | | `[ac] gain_verified` |
-| ☐ | optional SR830 #2 (2f) | TTL OUT von #1 → REF IN von #2, SR560-Ausgang per BNC-T an beide Eingänge | GPIB 5 | `lockin2` |
+| ☐ | optional SR830 #2 (2f) | TTL OUT von #1 → REF IN von #2, SR560-Ausgang per BNC-T an beide Eingänge | GPIB 9 | `lockin2` |
 | ☐ | Masse | ein Sternpunkt. Keine zweite Erdverbindung über Gehäuse oder Schirme | | |
 
 GPIB-Adressen sind Vorschläge: Jede Adresse darf nur einmal vorkommen. `check_instruments.py` listet, was der PC sieht.
