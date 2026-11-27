@@ -421,7 +421,10 @@ class PPMS(Cryostat):
 
     @staticmethod
     def _open(host, port):
-        import MultiPyVu as mpv
+        try:
+            import MultiPyVu as mpv
+        except SystemExit as e:                 # MultiPyVu ruft ohne pywin32 exit() auf
+            raise RuntimeError(f"MultiPyVu cannot load: {e}") from None
         client = mpv.Client(host=host, port=int(port))
         client.open()
         return client

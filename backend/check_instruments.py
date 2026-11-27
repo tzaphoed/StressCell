@@ -43,7 +43,7 @@ def probe(name, fn):
         v = fn()
         out(f"  ok   {name}: {v}  ({(time.perf_counter()-t0)*1e3:.0f} ms)")
         return v
-    except Exception as e:
+    except (Exception, SystemExit) as e:        # SystemExit: Bibliotheken, die exit() rufen
         out(f"  FAIL {name}: {type(e).__name__}: {e}")
         return None
 

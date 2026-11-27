@@ -43,8 +43,11 @@ jobs:
       - name: Gerätecheck ohne Geräte (darf FAIL melden, darf nicht abstürzen)
         shell: pwsh
         run: |
-          "" | dist\StressCell\StressCell.exe check
+          $o = "" | dist\StressCell\StressCell.exe check | Out-String
+          Write-Host $o
           if ($LASTEXITCODE -ne 0) { throw "check crashed" }
+          if ($o -match "pywin32") { throw "MultiPyVu cannot load pywin32 inside the exe" }
+          if ($o -notmatch "\[calibration\]") { throw "check stopped before the end" }
       - uses: actions/upload-artifact@v4
         with:
           name: StressCell-Windows

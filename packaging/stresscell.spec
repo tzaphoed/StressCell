@@ -25,6 +25,15 @@ for pkg in ("MultiPyVu",):
     datas += d
     binaries += b
     hidden += h
+if sys.platform == "win32":
+    # MultiPyVu verlangt unter Windows win32com und dazu pywin32.version.txt in sysconfig 'platlib'.
+    # In der exe zeigt platlib auf _internal/Lib/site-packages.
+    import sysconfig
+    hidden += ["win32com", "win32com.client", "pythoncom", "pywintypes"]
+    ver = os.path.join(sysconfig.get_path("platlib"), "pywin32.version.txt")
+    if not os.path.exists(ver):
+        raise SystemExit(f"pywin32 fehlt ({ver}): pip install pywin32")
+    datas.append((ver, os.path.join("Lib", "site-packages")))
 
 a = Analysis([os.path.join(BACKEND, "stresscell_app.py")],
              pathex=[BACKEND, TOOLS],
