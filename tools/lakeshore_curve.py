@@ -1,13 +1,16 @@
-"""Kalibrierkurve (.340 oder csv) in einen Lake Shore 370 laden, zuweisen und zurücklesen.
+"""Kalibrierkurve (.340 oder csv) in einen Lake Shore laden, zuweisen und zurücklesen.
 
-    python tools/lakeshore_curve.py calibrations/cernox.340
+    python tools/lakeshore_curve.py calibrations/cernox.340 --model 350
         zeigt nur, was geschrieben würde. Kein Gerät nötig.
 
-    python tools/lakeshore_curve.py calibrations/cernox.340 --address GPIB0::12::INSTR --curve 1 --channel 1 --write
-        schreibt Kurve 1, weist sie Kanal 1 zu, schaltet Autoscan aus und liest alle Punkte zurück.
+    python tools/lakeshore_curve.py calibrations/cernox.340 --model 350 --address GPIB0::12::INSTR --curve 21 --input C --write
+        Lake Shore 224/335/336/350: schreibt Kurve 21, weist sie Eingang C zu (INCRV), liest alle Punkte zurück.
 
-Was der 370 erwartet (Handbuch Model 370, Befehle CRVHDR, CRVPT, INSET, SCAN):
-  - 20 Kurvenplätze (1 bis 20), je höchstens 200 Punkte.
+    python tools/lakeshore_curve.py calibrations/cernox.340 --model 370 --address GPIB0::12::INSTR --curve 1 --input 1 --write
+        Lake Shore 370: Kurve 1, Kanal 1 (INSET), Autoscan aus (SCAN).
+
+Was die Geräte erwarten (Befehle CRVHDR, CRVPT, CRVDEL, dazu INCRV bzw. INSET/SCAN):
+  - Kurvenplätze: 370: 1 bis 20. 224/335/336/350: eigene Kurven 21 bis 59. Je höchstens 200 Punkte.
   - Format 4 = log10(Ohm) gegen Kelvin (für Cernox die richtige Wahl), 3 = Ohm gegen Kelvin.
   - Koeffizient 1 = negativ (Cernox, RuOx), 2 = positiv (Platin).
   - Punkte aufsteigend in den Sensoreinheiten. Für ein Cernox heißt das: T fällt von Punkt zu Punkt.
@@ -30,7 +33,8 @@ import time
 from pathlib import Path
 
 MAX_POINTS = 200
-CURVES_370 = range(1, 21)
+CURVES = {"370": range(1, 21), "224": range(21, 60), "335": range(21, 60), "336": range(21, 60), "350": range(21, 60)}
+CURVES_370 = CURVES["370"]
 
 
 def parse(path: Path) -> dict:
@@ -100,9 +104,12 @@ def prepare(c: dict) -> dict:
     return {"name": name, "serial": serial, "fmt": c["fmt"], "limit": float(limit), "coef": coef, "points": pts}
 
 
-def commands(c: dict, curve: int) -> list[str]:
-    if curve not in CURVES_370:
-        raise ValueError("Model 370: curve number 1 to 20")
+def commands(c: dict, curve: int, model: str = "370") -> list[str]:
+    rng = CURVES.get(str(model))
+    if rng is None:
+        raise ValueError(f"model {model}: use one of {', '.join(CURVES)}")
+    if curve not in rng:
+        raise ValueError(f"Model {model}: curve number {rng.start} to {rng.stop - 1}")
     cmds = [f"CRVDEL {curve}",
             f"CRVHDR {curve},{c['name']},{c['serial']},{c['fmt']},{c['limit']:g},{c['coef']}"]
     cmds += [f"CRVPT {curve},{i},{u:.6g},{t:.6g}" for i, (u, t) in enumerate(c["points"], 1)]
@@ -118,8 +125,15 @@ def verify(io, c: dict, curve: int, rel=2e-5) -> list[str]:
     return bad
 
 
-def assign(io, channel: int, curve: int, coef: int, scan_off=True, pause_s=0.1) -> list[str]:
-    """Kurve dem Kanal zuweisen, sonst nichts am Kanal ändern. INSET <ch>,<an>,<dwell>,<pause>,<Kurve>,<tempco>."""
+def assign(io, channel, curve: int, coef: int, scan_off=True, pause_s=0.1, model: str = "370") -> list[str]:
+    """Kurve dem Eingang zuweisen, sonst nichts am Eingang ändern.
+    370: INSET <ch>,<an>,<dwell>,<pause>,<Kurve>,<tempco>. 224/335/336/350: INCRV <Eingang>,<Kurve>."""
+    if str(model) != "370":
+        cmds = [f"INCRV {channel},{curve}"]
+        for cmd in cmds:
+            io.write(cmd)
+            time.sleep(pause_s)
+        return cmds
     on, dwell, pause, _, _ = [p.strip() for p in io.query(f"INSET? {channel}").split(",")[:5]]
     cmds = [f"INSET {channel},1,{dwell},{pause},{curve},{coef}"]
     if scan_off:
@@ -133,16 +147,21 @@ def assign(io, channel: int, curve: int, coef: int, scan_off=True, pause_s=0.1) 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("file")
-    ap.add_argument("--address", help="VISA-Adresse des 370, z. B. GPIB0::12::INSTR")
-    ap.add_argument("--curve", type=int, default=1, help="Kurvenplatz 1 bis 20 (Vorgabe 1)")
-    ap.add_argument("--channel", type=int, help="Kanal, dem die Kurve zugewiesen wird (ohne: nicht zuweisen)")
+    ap.add_argument("--model", default="350", choices=sorted(CURVES), help="Lake-Shore-Modell (Vorgabe 350)")
+    ap.add_argument("--address", help="VISA-Adresse, z. B. GPIB0::12::INSTR")
+    ap.add_argument("--curve", type=int, help="Kurvenplatz: 370 1..20 (Vorgabe 1), sonst 21..59 (Vorgabe 21)")
+    ap.add_argument("--input", "--channel", dest="channel", help="Eingang (350: A..D) bzw. Kanal (370: Nummer), dem die Kurve zugewiesen wird")
     ap.add_argument("--keep-scan", action="store_true", help="Autoscan nicht ausschalten")
     ap.add_argument("--write", action="store_true", help="wirklich schreiben (ohne: nur anzeigen)")
     ap.add_argument("--overwrite", action="store_true", help="belegten Kurvenplatz überschreiben")
     a = ap.parse_args(argv)
+    if a.curve is None:
+        a.curve = CURVES[a.model].start
+    if a.channel is not None and a.model == "370":
+        a.channel = int(a.channel)
 
     c = prepare(parse(Path(a.file)))
-    cmds = commands(c, a.curve)
+    cmds = commands(c, a.curve, a.model)
     t = [p[1] for p in c["points"]]
     print(f"{a.file}: {c['name']} / {c['serial'] or '-'}, format {c['fmt']}, coefficient {c['coef']}, "
           f"{len(c['points'])} points, {min(t):g} ... {max(t):g} K, limit {c['limit']:g} K")
@@ -150,10 +169,13 @@ def main(argv=None):
         print("\nwould send:")
         for cmd in cmds[:6] + (["..."] if len(cmds) > 7 else []) + cmds[-1:]:
             print("  " + cmd)
-        if a.channel:
-            print(f"  INSET {a.channel},1,<dwell>,<pause>,{a.curve},{c['coef']}")
-            if not a.keep_scan:
-                print(f"  SCAN {a.channel},0")
+        if a.channel is not None:
+            if a.model == "370":
+                print(f"  INSET {a.channel},1,<dwell>,<pause>,{a.curve},{c['coef']}")
+                if not a.keep_scan:
+                    print(f"  SCAN {a.channel},0")
+            else:
+                print(f"  INCRV {a.channel},{a.curve}")
         print("\nnothing written. Add --address ... --write to load it.")
         return 0
     if not a.address:
@@ -181,11 +203,12 @@ def main(argv=None):
             print("MISMATCH:\n  " + "\n  ".join(bad[:10]))
             return 1
         print("  read back: all points match")
-        if a.channel:
-            for cmd in assign(io, a.channel, a.curve, c["coef"], scan_off=not a.keep_scan):
+        if a.channel is not None:
+            for cmd in assign(io, a.channel, a.curve, c["coef"], scan_off=not a.keep_scan, model=a.model):
                 print("  sent", cmd)
             time.sleep(3.0)
-            print(f"  channel {a.channel}: {io.query(f'RDGR? {a.channel}')} Ohm, {io.query(f'RDGK? {a.channel}')} K")
+            R, K = ("RDGR?", "RDGK?") if a.model == "370" else ("SRDG?", "KRDG?")
+            print(f"  input {a.channel}: {io.query(f'{R} {a.channel}')} Ohm, {io.query(f'{K} {a.channel}')} K")
     finally:
         io.close()
     return 0

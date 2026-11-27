@@ -332,3 +332,28 @@ def test_lakeshore_curve_tool_340_to_370(tmp_path):
     big.write_text("\n".join(f"{cernox_like(2 + i)},{2 + i}" for i in range(250)))
     with pytest.raises(ValueError, match="at most 200"):
         lc.prepare(lc.parse(big))
+
+
+def test_lakeshore_curve_tool_350():
+    import importlib.util
+    from pathlib import Path
+    spec = importlib.util.spec_from_file_location(
+        "lakeshore_curve", Path(__file__).resolve().parents[2] / "tools" / "lakeshore_curve.py")
+    lc = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(lc)
+    c = lc.prepare({"name": "Cernox", "serial": "", "fmt": 4, "limit": None, "coef": None,
+                    "points": [(math.log10(cernox_like(T)), T) for T in (300, 100, 20, 4, 2)]})
+    cmds = lc.commands(c, 21, "350")
+    assert cmds[0] == "CRVDEL 21" and cmds[1].startswith("CRVHDR 21,Cernox,,4,")
+    with pytest.raises(ValueError):
+        lc.commands(c, 3, "350")                                          # 350: eigene Kurven ab 21
+
+    class IO:
+        def __init__(self):
+            self.log = []
+
+        def write(self, cmd):
+            self.log.append(cmd)
+
+    io = IO()
+    assert lc.assign(io, "C", 21, 1, pause_s=0, model="350") == ["INCRV C,21"] and io.log == ["INCRV C,21"]

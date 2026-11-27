@@ -10,8 +10,8 @@ Starten
   Geraete pruefen.bat       alle Geräte nur lesen, Bericht in logs\instrument_check_*.txt
 
 Weitere Aufrufe aus einer Eingabeaufforderung in diesem Ordner
-  StressCell.exe curve calibrations\cernox_ppms.340                 zeigt, was in den 370 ginge
-  StressCell.exe curve calibrations\cernox_ppms.340 --address GPIB0::12::INSTR --curve 1 --channel 1 --write
+  StressCell.exe curve calibrations\cernox_ppms.340 --model 350 --input C      zeigt, was in den 350 ginge
+  StressCell.exe curve calibrations\cernox_ppms.340 --model 350 --address GPIB0::12::INSTR --curve 21 --input C --write
   StressCell.exe fit data\<Ordner>\data.csv calibrations\cernox_eigen.csv
   StressCell.exe entropy --cp ... --data ...
   StressCell.exe merge data\<Ordner>\data.csv ppms_log.dat --offset 0

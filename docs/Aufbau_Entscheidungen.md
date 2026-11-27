@@ -3,7 +3,7 @@
 Dieses Dokument hält fest, für welche Geräte und welchen Aufbau wir uns entschieden haben, und warum.
 Das Nachschlagewerk mit allen Alternativen ist [`FC100_Geraeteauswahl.pdf`](FC100_Geraeteauswahl.pdf).
 Unser Aufbau entspricht dort **Aufbau B („alles SR830“)**, mit AH 2700A für die Kraft und
-Lake Shore 370 für das Zellthermometer. Die passenden Werte stehen in `backend/config.toml`.
+Lake Shore 350 für das Zellthermometer (zuerst war ein 370 geplant). Die passenden Werte stehen in `backend/config.toml`.
 
 ## Ziel der Messung
 
@@ -26,7 +26,7 @@ Lake Shore 370 für das Zellthermometer. Die passenden Werte stehen in `backend/
 | Thermospannung (ΔT bei f) | Thermoelement Type E, 12,5 oder 25 µm, differentiell → ein BNC → **SR560** (Batterie, Eingang A) → derselbe SR830 | SR560 beschaffen oder ausleihen | `[ac] preamp_gain` = Verstärkung am SR560 |
 | Kraft (DC) | AH 2700A, Messfrequenz weg von der ECE-Frequenz | vorhanden | `cap = "ah2700a"`, `capmeter` |
 | Zellthermometer | Cernox CX-1050, **kalibriert** gekauft, auf der Thermal Link Plate nahe der Referenzlötstelle | Cernox beschaffen | `[cell_thermometer]` |
-| Auslesen Cernox | Lake Shore 370 mit Scanner, Cernox auf einem Kanal | vorhanden | `model = "370"`, `input` = Kanal am Scanner |
+| Auslesen Cernox | Lake Shore 350, Cernox an Eingang C (NTC RTD) | vorhanden | `model = "350"`, `input = "C"` |
 | Kryostat | PPMS (T, Rate, Feld, Kammer), **nur am MultiVu-Rechner bedient, keine Verbindung zum Messrechner** | vorhanden | `ppms_read = false`, B und PPMS-T später mit `tools/merge_multivu.py` |
 | Kontrolle | Oszilloskop: Spannung am Zugstapel hinter R2, Kurvenform, `gain_verified` | im Labor | von Hand |
 | Reserve | Keithley 2410 (die Software klemmt auf den 200-V-Bereich), Keithley 2450 (nur im SCPI-Modus, nicht TSP) | vorhanden | |
@@ -113,14 +113,14 @@ Dort weicht das Gespräch ab, gilt dieses Dokument:
 | HV-Kurzschlussbox mit 100 MΩ und 10 kΩ zum Entladen | R1 = 15 kΩ und Bleeder 1 MΩ dauerhaft in der Anschlussbox | wie im RP100, die Stapel hängen nie offen |
 | lineare Kraftkalibrierung F = k(T)·(C − C0) | Razorbill-Formel F = κ(T)·(α/(C − Cp) − f0(T)) | Kalibrierblatt der Zelle #0260 |
 | Lake Shore 372 über `KRDG?` | `RDGK?` und `RDGR?` | Befehlssatz des 370 und 372, so im Treiber umgesetzt |
-| T nur vom Cernox, Feld von Hand | T nur vom Cernox über den 370, B und PPMS-T nachträglich aus dem MultiVu-Log über die Uhrzeit | Messrechner und PPMS-Rechner sind nicht verbunden. Kammer unbekannt: höchstens 50 V je Stapel |
+| T nur vom Cernox, Feld von Hand | T nur vom Cernox über den 350, B und PPMS-T nachträglich aus dem MultiVu-Log über die Uhrzeit | Messrechner und PPMS-Rechner sind nicht verbunden. Kammer unbekannt: höchstens 50 V je Stapel |
 
 ## Offene Punkte vor dem ersten Einsatz
 
 - [ ] Kalibrierblatt prüfen, in `calibrations/FC100_0260.toml` `verified = true` setzen
 - [ ] R2 = 680 Ω, R1 = 15 kΩ und beide Bleeder einbauen, danach `bleeder_fitted = true`
 - [ ] Verstärkung der AC-Kette mit dem Oszilloskop am Stapel messen, danach `gain_verified = true`
-- [ ] Lake Shore 370: Kurve laden und zuweisen (`python tools/lakeshore_curve.py calibrations/cernox.340 --address ... --curve 1 --channel 1 --write`), Autoscan aus, kleine Anregung einstellen (Eigenerwärmung bei 2 K prüfen), `input` in der Config eintragen
+- [ ] Lake Shore 350: Eingang C auf NTC RTD. Kurve rechnet StressCell (`curve_in = "software"`), im Gerät nur für die Anzeige (`python tools/lakeshore_curve.py calibrations/cernox_ppms.340 --model 350 --address ... --curve 21 --input C --write`), Autoscan aus, kleine Anregung einstellen (Eigenerwärmung bei 2 K prüfen), `input` in der Config eintragen
 - [ ] Verstärkung am SR560 = `preamp_gain`
 - [ ] Messfrequenz der AH festlegen, mit Abstand zur ECE-Frequenz und zu 2f
 - [ ] Thermokraft des Type E im Feld: je Feld relativ auswerten oder kalibrieren

@@ -207,9 +207,10 @@ class AHBridge(CapacitanceMeter):
 
     _rx = re.compile(r"C=\s*(-?[0-9.]+)\s*PF\s+L=\s*(-?[0-9.]+)\s*([A-Z]+)\s+V=\s*(-?[0-9.]+)\s*V")
 
-    def __init__(self, io, model="2550A"):
+    def __init__(self, io, model="2550A", average=None):
         self.io = io
         self.model = model
+        self.average = average            # AVERAGE 0..15: Mittelungszeit, None = am Gerät lassen
 
     def identify(self):
         return f"AH{self.model}"
@@ -220,6 +221,8 @@ class AHBridge(CapacitanceMeter):
         elif abs(frequency_Hz - 1000.0) > 1e-6:
             log.warning("AH%s measures at 1 kHz only, ignoring %g Hz", self.model, frequency_Hz)
         self.io.write(f"V {excitation_Vrms:.4f}")
+        if self.average is not None:
+            self.io.write(f"AV {int(self.average)}")
 
     @classmethod
     def parse(cls, line: str) -> dict:
@@ -633,7 +636,8 @@ def build_cap(cfg, pool):
     if m in ("e4980al", "e4980a", "hp4284a"):
         return E4980AL(pool.get(i["capmeter"]), m)
     if m in ("ah2500a", "ah2550a", "ah2700a"):
-        return AHBridge(pool.get(i["capmeter"], timeout_ms=10000), m[2:].upper())
+        return AHBridge(pool.get(i["capmeter"], timeout_ms=10000), m[2:].upper(),
+                        cfg.get("capacitance", {}).get("ah_average"))
     if m == "lockin_cap":
         return lockins.LockInCap(pool.get(i["capmeter"]), i.get("capmeter_model", "sr830"),
                                  i.get("lockin_cap_gain", "1M"), float(i.get("lockin_cap_phase_deg", 0.0)))

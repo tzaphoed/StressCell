@@ -15,7 +15,7 @@ Handbuch Kapitel 5 (Verkabelung) und 9 (Schritt für Schritt).
 | ☐ | Thermoelement-Anschluss | beide Chromel-Enden auf zwei Lötpads nebeneinander (gleiche Temperatur), Kupfer-Koax zum BNC. Vor dem Abziehen BNC-Kurzschlusskappe drauf | | |
 | ☐ | Thermoelement Type E, differentiell | Lötstelle 1 auf der Probe (elektrisch isoliert: GE-Lack/Stycast), Lötstelle 2 auf der Thermal Link Plate neben dem Cernox. Schleife klein und verdrillt | | |
 | ☐ | **AH 2700A** (Kraft) | Koax direkt an den Kraftsensor, **gelbes Band = High**, **schwarz = Low**. Kein Schalter dazwischen, Schirme nicht an den Kryostaten | GPIB 28 | `capmeter`, `[capacitance] frequency_Hz` |
-| ☐ | **Lake Shore 370** + Scanner | Cernox 4-Leiter (I+, I−, V+, V−, paarweise verdrillt) an Scannerkanal 1 | GPIB 12 | `[cell_thermometer] input = "1"` |
+| ☐ | **Lake Shore 350** | Cernox 4-Leiter (I+, I−, V+, V−, paarweise verdrillt) an Eingang C, Sensor Type NTC RTD | GPIB 12 | `[cell_thermometer] input = "1"` |
 | ☐ | **PPMS** | MultiVu läuft, darin der MultiPyVu-Server | Netzwerk, Port 27183 | `multipyvu_host` |
 | ☐ | Oszilloskop | Tastkopf über den Zugstapel (hinter R2), **Masseklemme an weiß** (Lock-in-Seite), nie an die Keithley-Seite | | `[ac] gain_verified` |
 | ☐ | optional SR830 #2 (2f) | TTL OUT von #1 → REF IN von #2, SR560-Ausgang per BNC-T an beide Eingänge | GPIB 9 | `lockin2` |
@@ -59,7 +59,7 @@ Kontraktion von Probe und Zelle auch bei 0 V Kraft auf. Erste Abkühlung möglic
 Ablauf:
 
 - ☐ `simulate = false`, `read_only = true`, Adressen eingetragen, `check_instruments.py` ohne FAIL
-- ☐ Kapazität bei 290 K in Luft ≈ 1,312 pF, PPMS liefert T, B und Kammer, der 370 liefert R und T
+- ☐ Kapazität bei 290 K in Luft ≈ 1,312 pF, PPMS liefert T, B und Kammer, der 350 liefert R an Eingang C
 - ☐ Kalibrierblatt geprüft, `verified = true`
 - ☐ Bleeder eingebaut und nachgemessen, `bleeder_fitted = true`
 - ☐ Spannungsschutz am Keithley 20 V, `drive_cap_V` aus der Probengröße berechnet, `force_max_N` gesetzt

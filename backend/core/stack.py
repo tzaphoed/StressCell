@@ -170,7 +170,9 @@ def build(cfg, publish=lambda ev: None, speed=None, virtual=False, noise=True, s
             clock = VirtualClock()
         else:
             clock = RealClock(speed if speed is not None else cfg["mode"].get("sim_speed", 1.0))
-        inst, w = sim.build_sim(clock, cfg.get("sim", {}), noise=noise, seed=seed)
+        # Die Sim verstärkt wie der echte SR560 laut [ac] preamp_gain, sonst stimmt ΔT in der Simulation nicht
+        sim_cfg = {"preamp_gain": float(cfg.get("ac", {}).get("preamp_gain", 100.0)), **cfg.get("sim", {})}
+        inst, w = sim.build_sim(clock, sim_cfg, noise=noise, seed=seed)
         from instruments.real import dc_channels_from_cfg
         inst.supply.dc_channels = dc_channels_from_cfg(cfg)     # die Sim kennt die echte Verdrahtung
         if not cfg["mode"].get("ppms_read", True):

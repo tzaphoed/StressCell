@@ -101,7 +101,7 @@ f_min_Hz = 1.0
 f_max_Hz = 5000.0
 harmonic = 1
 time_constant_s = 1.0
-preamp_gain = 100.0       # Vorverstärker vor dem Lock-in (SR560), genau wie am Gerät eingestellt
+preamp_gain = 5.0         # Vorverstärker vor dem Lock-in (SR560), GENAU wie am Gerät eingestellt. Sonst ist ΔT um den Faktor falsch
 tc_sign = 1.0             # Polung Thermoelement + SR560: so, dass Zug weit weg vom Übergang KÜHLT (thermoelastisch, alpha > 0)
 bridge_guard_frac = 0.03  # mit AH-Brücke: Detektion nicht näher als 3 % an k x 1 kHz
 G_drive_tol_V = 10.0      # dF/dD gilt nur bis so weit vom Offset, an dem es gemessen wurde
@@ -118,9 +118,9 @@ length_mm = 1.0          # freie Länge zwischen den Klebestellen
 # Eigenes Thermometer an der Zelle (Cernox). Handbuch Kapitel "Zellthermometer".
 # source: none | lakeshore | ppms_bridge | dmm
 source = "lakeshore"      # dein Aufbau: Cernox am Lake Shore mit Kalibrierkurve. Modell, Adresse, Eingang prüfen!
-model = "370"             # lakeshore: 218 | 224 | 335 | 336 | 350 | 370 | 372. Unser Aufbau: 370 mit Scanner
+model = "350"             # lakeshore: 218 | 224 | 335 | 336 | 350 | 370 | 372. Unser Aufbau: 350, Cernox an Eingang C
 address = "GPIB0::12::INSTR"
-input = "1"               # Lake Shore Eingang (218, 370, 372: Kanalnummer, z. B. "1"). Am Scanner prüfen, wo der Cernox hängt!
+input = "C"               # Lake Shore Eingang: 224/335/336/350 Buchstabe (A..D), 218/370/372 Nummer. Unser Aufbau: C
 channel = 2               # ppms_bridge: Kanal der Resistivity-Option
 current_uA = 10.0         # ppms_bridge: Messstrom. Cernox heizt sich bei tiefer T sonst selbst
 calibration = "cernox_ppms.340"  # Kurve R -> T im Ordner calibrations (.340 oder csv R_ohm,T_K). 0,55 bis 265,6 K
@@ -134,6 +134,8 @@ stale_s = 15.0            # so lange gilt der letzte Wert
 [capacitance]
 frequency_Hz = 1000.0
 excitation_Vrms = 1.0
+ah_average = 4            # AH 2700A: Mittelung AVERAGE 0..15 (größer = länger, ruhiger). Messzeit im Gerätecheck (ms) unter 1000 halten.
+                          # Leer lassen (Zeile löschen), wenn die Software die Mittelung nicht anfassen soll
 calibration = "FC100_0260.toml"   # deine Zelle, Blatt 0260-FC100-b. cell_example.toml ist die lineare Testzelle
 
 [instruments]
