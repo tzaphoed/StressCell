@@ -199,7 +199,7 @@ amp_gain_verified = false
 # Zugstapel: Adern rot (+) und weiß (-), Datenblatt Tabelle 1.
 # source: rp100 | smu | hv_amp | ac_only | grounded
 source = "ac_only"        # Aufbau A: nur AC über R2, Gleichspannung 0 V
-bleeder_R_ohm = 1.0e6     # Entladewiderstand parallel zum Stapel, >= 500 V Spannungsfestigkeit
+bleeder_R_ohm = 9.5e5     # Entladewiderstand parallel zum Stapel, >= 500 V Spannungsfestigkeit. Gemessen: 950 kOhm
 bleeder_fitted = false    # erst true, wenn er wirklich eingebaut ist
 
 [instruments.compression]
@@ -211,7 +211,7 @@ address = "GPIB0::24::INSTR"
 channel = 1               # keithley2600: "a" oder "b", b2900: 1 oder 2
 compliance_A = 6e-3       # Hardware-Strombegrenzung der SMU
 series_R_ohm = 15000.0    # R1 in der Anschlussbox, wie im RP100
-bleeder_R_ohm = 1.0e6
+bleeder_R_ohm = 9.5e5     # gemessen: 950 kOhm
 bleeder_fitted = false
 # Für hv_amp zusätzlich: gain (V am Stapel je V Aux), gain_verified, aux (Nummer), lockin_model
 
