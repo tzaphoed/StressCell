@@ -128,6 +128,13 @@ def checklist(st) -> list[dict]:
                      "NiMnSn ist spröde. Grenze unter der Bruchspannung wählen, nur auf Druck belasten.",
                      "Probe"))
 
+    cap = float(lim.get("drive_cap_V", 0) or 0)
+    out.append(_item("drive_cap", "Spannungsgrenze Inbetriebnahme", INFO if cap > 0 else WARN,
+                     f"drive_cap_V = {cap:g} V je Stapel" if cap > 0 else "aus: es gilt nur das Datenblattfenster",
+                     "Eigene Obergrenze zusätzlich zum Datenblatt. Für die ersten Läufe klein (10 V), "
+                     "erst hochsetzen, wenn Vorzeichen, dF/dD und Kraftgrenze an der Probe geprüft sind.",
+                     "Grenzwerte"))
+
     guesses = []
     if lim.get("T_cell_tau_s") == 300.0:
         guesses.append("T_cell_tau_s")

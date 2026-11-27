@@ -27,6 +27,24 @@ def test_refuses_outside_window_at_300K(stack):
     assert stack.safety.setpoints() == {"tension": 0.0, "compression": 0.0}
 
 
+def test_drive_cap_limits_voltage_and_guard_ramps_back(stack):
+    """[limits] drive_cap_V: eigene Obergrenze je Stapel, enger als das Datenblatt."""
+    free_force(stack)
+    stack.safety.output_on()
+    stack.safety.set_voltages(30, 0)
+    advance(stack, 40)
+    stack.cfg["limits"]["drive_cap_V"] = 10.0
+    assert stack.safety.window() == (-10.0, 10.0)
+    with pytest.raises(LimitError):
+        stack.safety.set_voltages(11, 0)
+    with pytest.raises(LimitError):
+        stack.safety.set_drive(-25)                      # zwei DC-Kanäle: höchstens 20 V Drive
+    advance(stack, 30)                                   # Guard fährt die 30 V auf die Grenze zurück
+    assert stack.safety.setpoints()["tension"] == pytest.approx(10.0)
+    stack.cfg["limits"]["drive_cap_V"] = 0.0
+    assert stack.safety.window() == (-20.0, 120.0)
+
+
 def test_refuses_nan_and_text(stack):
     stack.safety.output_on()
     for bad in (float("nan"), float("inf"), "x", None):

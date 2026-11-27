@@ -139,6 +139,13 @@ class Safety:
         v = self.chamber_limit(chamber)
         if v is not None:
             vmin, vmax = max(vmin, -v), min(vmax, v)
+        return self.capped(vmin, vmax)
+
+    def capped(self, vmin, vmax):
+        """[limits] drive_cap_V: eigene Obergrenze je Stapel für die Inbetriebnahme. 0 = aus."""
+        cap = float(self.lim.get("drive_cap_V", 0.0) or 0.0)
+        if cap > 0:
+            vmin, vmax = max(vmin, -cap), min(vmax, cap)
         return vmin, vmax
 
     def dc_window(self):

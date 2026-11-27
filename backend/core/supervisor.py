@@ -635,7 +635,7 @@ class Supervisor:
                 self.safety.T = None
                 self.safety.T_cell = None
                 try:
-                    vmin, vmax = fc100.voltage_window(None)
+                    vmin, vmax = self.safety.capped(*fc100.voltage_window(None))
                     self.safety.ac_off()
                     sp = self.safety.setpoints()
                     nt = min(max(sp["tension"], vmin), vmax)

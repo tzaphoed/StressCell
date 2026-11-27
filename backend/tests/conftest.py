@@ -35,6 +35,7 @@ def cfg(tmp_path):
     c["limits"]["sealed_V_max"] = 400.0         # eigener Test für die Vorgabe
     c["limits"]["tare_T_min_K"] = 0.0           # eigener Test
     c["limits"]["T_cell_tau_s"] = 20.0          # passt zur Sim-Verzögerung
+    c["limits"]["drive_cap_V"] = 0.0            # eigener Test (test_safety.py)
     return c
 
 

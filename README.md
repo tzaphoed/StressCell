@@ -7,6 +7,7 @@ austauschbare Treiber, Simulation, feste Messfunktionen statt Sequenzer, Grenzwe
 Es erklärt Sicherheit, Zelle, Geräte, Verkabelung, Kalibrierung, Konfiguration und die Messung Schritt für Schritt.
 Für den Laborschrank: [`docs/FC100_Geraeteauswahl.pdf`](docs/FC100_Geraeteauswahl.pdf).
 Unser Aufbau (SR830, AH 2700A, Lake Shore 370, Keithley 2400) und die Gründe: [`docs/Aufbau_Entscheidungen.md`](docs/Aufbau_Entscheidungen.md).
+Zum Abhaken vor dem ersten Einschalten: [`docs/Checkliste_Inbetriebnahme.md`](docs/Checkliste_Inbetriebnahme.md).
 
 ## Start
 

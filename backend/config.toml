@@ -36,6 +36,8 @@ slew_default_V_s = 1.0   # ohne Angabe. Bei 300 K etwa 1,7 N/s (beide Kanäle la
 slew_max_V_s = 10.0      # RP100-Handbuch: unter 100 V/s, langsamer heizt weniger
 guard_slew_V_s = 20.0    # Rampe, mit der der Guard zurückfährt
 output_off_V_max = 5.0   # Ausgänge nur nahe 0 V aus, sonst Kraftsprung an der Probe
+drive_cap_V = 10.0       # eigene Obergrenze |V| je Stapel, zusätzlich zum Datenblattfenster. 0 = aus.
+                         # Für die Inbetriebnahme klein lassen, erst nach den ersten Läufen hochsetzen.
 transition_V_max = 50.0  # Betrag je Kanal, während die Kammer pumpt, flutet oder spült
 sealed_V_max = 80.0      # Betrag je Kanal in abgeschlossenem Niederdruck-He. Razorbill: Bogen ab knapp über 100 V
 current_trip_A = 2e-3    # darüber: Lichtbogen oder Kurzschluss angenommen, Ausgänge aus
