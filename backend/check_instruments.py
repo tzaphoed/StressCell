@@ -124,6 +124,16 @@ def main():
         if io is not None:
             ls = thermometers.LakeShore(io, ct.get("model", "336"), ct.get("input", "A"))
             info = probe("assigned curve", ls.curve_info)
+            if ls.bridge:
+                scan = probe("scanner (SCAN?: channel, autoscan)", lambda: io.query("SCAN?"))
+                try:
+                    ch, auto = (int(float(x)) for x in scan.split(",")[:2])
+                    if ch != int(ct.get("input", 0)):
+                        out(f"  WARNING scanner sits on channel {ch}, config input is {ct.get('input')}")
+                    if auto:
+                        out("  WARNING autoscan is on: readings of the cell channel get old between scans")
+                except (AttributeError, ValueError, TypeError):
+                    pass
             for _ in range(3):
                 probe("read (device curve)", ls.read)
             cp = cfg["paths"]["calibration_dir"] / ct.get("calibration", "")

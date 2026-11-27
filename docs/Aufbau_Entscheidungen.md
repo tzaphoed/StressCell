@@ -3,7 +3,7 @@
 Dieses Dokument hält fest, für welche Geräte und welchen Aufbau wir uns entschieden haben, und warum.
 Das Nachschlagewerk mit allen Alternativen ist [`FC100_Geraeteauswahl.pdf`](FC100_Geraeteauswahl.pdf).
 Unser Aufbau entspricht dort **Aufbau B („alles SR830“)**, mit AH 2700A für die Kraft und
-Lake Shore 372 für das Zellthermometer. Die passenden Werte stehen in `backend/config.toml`.
+Lake Shore 370 für das Zellthermometer. Die passenden Werte stehen in `backend/config.toml`.
 
 ## Ziel der Messung
 
@@ -25,7 +25,7 @@ Lake Shore 372 für das Zellthermometer. Die passenden Werte stehen in `backend/
 | Thermospannung (ΔT bei f) | Thermoelement Type E, 12,5 oder 25 µm, differentiell → **SR560** (Batterie, A−B) → derselbe SR830 | SR560 beschaffen oder ausleihen | `[ac] preamp_gain` = Verstärkung am SR560 |
 | Kraft (DC) | AH 2700A, Messfrequenz weg von der ECE-Frequenz | vorhanden | `cap = "ah2700a"`, `capmeter` |
 | Zellthermometer | Cernox CX-1050, **kalibriert** gekauft, auf der Thermal Link Plate nahe der Referenzlötstelle | Cernox beschaffen | `[cell_thermometer]` |
-| Auslesen Cernox | Lake Shore 372 | beschaffen | `model = "372"`, `input` am Gerät prüfen |
+| Auslesen Cernox | Lake Shore 370 mit Scanner, Cernox auf einem Kanal | vorhanden | `model = "370"`, `input` = Kanal am Scanner |
 | Kryostat | PPMS (T, Rate, Feld), StressCell liest über MultiPyVu | vorhanden | `cryo = "multipyvu"` |
 | Kontrolle | Oszilloskop: Spannung am Zugstapel hinter R2, Kurvenform, `gain_verified` | im Labor | von Hand |
 | Reserve | Keithley 2410 (die Software klemmt auf den 200-V-Bereich), Keithley 2450 (nur im SCPI-Modus, nicht TSP) | vorhanden | |
@@ -108,7 +108,7 @@ Dort weicht das Gespräch ab, gilt dieses Dokument:
 | „innerer“ und „äußerer“ Stapel | Zug- und Druckstapel, Farben laut Datenblatt | Bezeichnung der FC100 |
 | HV-Kurzschlussbox mit 100 MΩ und 10 kΩ zum Entladen | R1 = 15 kΩ und Bleeder 1 MΩ dauerhaft in der Anschlussbox | wie im RP100, die Stapel hängen nie offen |
 | lineare Kraftkalibrierung F = k(T)·(C − C0) | Razorbill-Formel F = κ(T)·(α/(C − Cp) − f0(T)) | Kalibrierblatt der Zelle #0260 |
-| Lake Shore 372 über `KRDG?` | `RDGK?` und `RDGR?` | Befehlssatz des 372, so im Treiber umgesetzt |
+| Lake Shore 372 über `KRDG?` | `RDGK?` und `RDGR?` | Befehlssatz des 370 und 372, so im Treiber umgesetzt |
 | T nur vom Cernox, Feld von Hand | Cernox über den 372 **und** PPMS über MultiPyVu | Das Spannungsfenster nimmt die wärmere der beiden Temperaturen, das Feld kommt automatisch |
 
 ## Offene Punkte vor dem ersten Einsatz
@@ -116,7 +116,7 @@ Dort weicht das Gespräch ab, gilt dieses Dokument:
 - [ ] Kalibrierblatt prüfen, in `calibrations/FC100_0260.toml` `verified = true` setzen
 - [ ] R2 = 680 Ω, R1 = 15 kΩ und beide Bleeder einbauen, danach `bleeder_fitted = true`
 - [ ] Verstärkung der AC-Kette mit dem Oszilloskop am Stapel messen, danach `gain_verified = true`
-- [ ] Lake Shore 372: Eingang, Kurvenzuweisung (.340) und kleine Anregung einstellen (Eigenerwärmung bei 2 K prüfen), `input` in der Config eintragen
+- [ ] Lake Shore 370: Kurve laden und zuweisen (`python tools/lakeshore_curve.py calibrations/cernox.340 --address ... --curve 1 --channel 1 --write`), Autoscan aus, kleine Anregung einstellen (Eigenerwärmung bei 2 K prüfen), `input` in der Config eintragen
 - [ ] Verstärkung am SR560 = `preamp_gain`
 - [ ] Messfrequenz der AH festlegen, mit Abstand zur ECE-Frequenz und zu 2f
 - [ ] Thermokraft des Type E im Feld: je Feld relativ auswerten oder kalibrieren

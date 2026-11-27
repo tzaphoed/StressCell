@@ -110,13 +110,14 @@ length_mm = 1.0
 # Eigenes Thermometer an der Zelle (Cernox). Handbuch Kapitel "Zellthermometer".
 # source: none | lakeshore | ppms_bridge | dmm
 source = "lakeshore"      # dein Aufbau: Cernox am Lake Shore mit Kalibrierkurve. Modell, Adresse, Eingang prüfen!
-model = "372"             # lakeshore: 218 | 224 | 335 | 336 | 350 | 372. Unser Aufbau: 372
+model = "370"             # lakeshore: 218 | 224 | 335 | 336 | 350 | 370 | 372. Unser Aufbau: 370 mit Scanner
 address = "GPIB0::12::INSTR"
-input = "1"               # Lake Shore Eingang (218 und 372: Nummer, z. B. "1"). Am 372 prüfen, wo der Cernox hängt!
+input = "1"               # Lake Shore Eingang (218, 370, 372: Kanalnummer, z. B. "1"). Am Scanner prüfen, wo der Cernox hängt!
 channel = 2               # ppms_bridge: Kanal der Resistivity-Option
 current_uA = 10.0         # ppms_bridge: Messstrom. Cernox heizt sich bei tiefer T sonst selbst
 calibration = "cernox.340"  # Kurve R -> T im Ordner calibrations (.340 oder csv R_ohm,T_K)
-curve_in = "device"       # lakeshore: device = Kurve im Gerät (KRDG?) | software = StressCell rechnet mit calibration
+curve_in = "device"       # lakeshore: device = Kurve im Gerät (RDGK?) | software = StressCell rechnet mit calibration
+                          # Kurve in den 370 laden: python tools/lakeshore_curve.py calibrations/cernox.340 (Handbuch)
 window = "max"            # max: höhere aus PPMS und Cernox (sicher in beide Richtungen) | cernox: nur Cernox
 margin_K = 1.0            # Reserve auf die Cernox-Temperatur
 stale_s = 15.0            # so lange gilt der letzte Wert

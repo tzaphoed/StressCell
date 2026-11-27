@@ -3,8 +3,8 @@
 Jeder Treiber liefert read() -> {"T_cell": K oder None, "R_cell": Ohm oder None}.
 
   LakeShore       Temperaturcontroller/-monitor, rechnet selbst mit seiner Kurve.
-                  218: KRDG? <1..8>; 224, 335, 336, 350: KRDG? <A..D>; 372: RDGK? <1..16>.
-                  Widerstand dazu über SRDG? bzw. RDGR?.
+                  218: KRDG? <1..8>; 224, 335, 336, 350: KRDG? <A..D>; 370, 372: RDGK? <Kanal>.
+                  Widerstand dazu über SRDG? bzw. RDGR?. Der 370 kennt SRDG?/KRDG? nicht.
   Resistance      Widerstand von einem Messgerät, Temperatur aus der Kalibrierkurve (core/thermometry):
     PPMSBridgeR   Kanal der PPMS-Resistivity-Option. Kleiner Strom, Cernox heizt sich sonst auf.
     DMMFourWire   Keysight 34401A/34461A/34465A, Keithley 2000/2001/2010, 4-Leiter. Messstrom fest
@@ -23,6 +23,7 @@ class LakeShore:
 
     def __init__(self, io, model="336", input="A", curve=None):
         self.io, self.model, self.inp, self.curve = io, str(model), str(input), curve
+        self.bridge = self.model in ("370", "372")     # Widerstandsbrücken: RDGR?/RDGK?, Kurve über INSET?
 
     def identify(self):
         return self.io.query("*IDN?")
@@ -32,20 +33,24 @@ class LakeShore:
         return v
 
     def read(self):
-        R = self._q(f"RDGR? {self.inp}" if self.model == "372" else f"SRDG? {self.inp}")
+        R = self._q(f"RDGR? {self.inp}" if self.bridge else f"SRDG? {self.inp}")
         R = R if R > 0 else None
         if self.curve is not None:
             return {"T_cell": self.curve.T(R), "R_cell": R}
-        T = self._q(f"RDGK? {self.inp}" if self.model == "372" else f"KRDG? {self.inp}")
+        T = self._q(f"RDGK? {self.inp}" if self.bridge else f"KRDG? {self.inp}")
         # Lake Shore meldet Über- oder Unterlauf als 0: das ist keine Temperatur
         return {"T_cell": T if T > 0 else None, "R_cell": R}
 
     def curve_info(self) -> dict:
-        """Welche Kurve das Gerät für diesen Eingang benutzt. Nur lesen. Beim 218 und 372 heißt der
-        Befehl anders bzw. ist kanalweise, darum hier nur 224/335/336/350."""
-        if self.model not in ("224", "335", "336", "350"):
+        """Welche Kurve das Gerät für diesen Eingang benutzt. Nur lesen.
+        224/335/336/350: INCRV?. 370/372: INSET? <Kanal> -> an, dwell, pause, Kurve, tempco.
+        Beim 218 heißt der Befehl anders, dort am Gerät nachsehen."""
+        if self.bridge:
+            n = int(float(self.io.query(f"INSET? {self.inp}").split(",")[3]))
+        elif self.model in ("224", "335", "336", "350"):
+            n = int(float(self.io.query(f"INCRV? {self.inp}")))
+        else:
             return {"note": f"model {self.model}: check the assigned curve at the front panel"}
-        n = int(float(self.io.query(f"INCRV? {self.inp}")))
         if n == 0:
             return {"curve": 0, "note": "no curve assigned: the device reports only sensor units"}
         parts = [p.strip() for p in self.io.query(f"CRVHDR? {n}").split(",")] + [""] * 5

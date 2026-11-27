@@ -256,3 +256,79 @@ def test_check_instruments_runs_through_with_fake_devices(cfg, tmp_path, monkeyp
     assert "[cell thermometer] Lake Shore 336" in text and "X98765" in text and "295.1" in text
     assert "FAIL open: OSError: no MultiVu here" in text
     assert list(tmp_path.glob("instrument_check_*.txt"))
+
+
+def test_lakeshore_370_uses_bridge_commands():
+    class IO:
+        def __init__(self, ans):
+            self.ans, self.log = ans, []
+
+        def query(self, c):
+            self.log.append(c)
+            return self.ans[c]
+
+    io = IO({"RDGK? 1": "+4.2310E+00", "RDGR? 1": "+1.23456E+03", "INSET? 1": "1,10,3,7,1",
+             "CRVHDR? 7": "CX-1050,X98765,4,325.0,1"})
+    ls = th.LakeShore(io, "370", "1")
+    assert ls.read() == {"T_cell": 4.231, "R_cell": 1234.56}
+    assert not any(c.startswith(("KRDG", "SRDG")) for c in io.log)   # kennt der 370 nicht
+    assert ls.curve_info() == {"curve": 7, "name": "CX-1050", "serial": "X98765", "format": "4", "limit_K": "325.0"}
+
+
+def test_lakeshore_curve_tool_340_to_370(tmp_path):
+    import importlib.util
+    from pathlib import Path
+    spec = importlib.util.spec_from_file_location(
+        "lakeshore_curve", Path(__file__).resolve().parents[2] / "tools" / "lakeshore_curve.py")
+    lc = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(lc)
+
+    Ts = (300, 100, 20, 4, 2)
+    p = tmp_path / "x.340"
+    p.write_text("Sensor Model:   CX-1050-SD-HT-1.4L\nSerial Number:  X98765\nData Format:    4      (Log Ohms/Kelvin)\n"
+                 "SetPoint Limit: 325.0  (Kelvin)\nTemperature coefficient:  1 (Negative)\nNumber of Breakpoints:   5\n\n"
+                 "No.   Units      Temperature (K)\n\n" +
+                 "\n".join(f"{i} {math.log10(cernox_like(T)):.6f} {T}" for i, T in enumerate(Ts, 1)))
+    c = lc.prepare(lc.parse(p))
+    assert c["fmt"] == 4 and c["coef"] == 1 and c["limit"] == 325.0
+    assert c["name"] == "CX-1050-SD-HT-1" and c["serial"] == "X98765"          # 15 bzw. 10 Zeichen
+    u = [x[0] for x in c["points"]]
+    assert u == sorted(u) and [x[1] for x in c["points"]] == [300, 100, 20, 4, 2]
+    cmds = lc.commands(c, 3)
+    assert cmds[0] == "CRVDEL 3" and cmds[1] == "CRVHDR 3,CX-1050-SD-HT-1,X98765,4,325,1"
+    assert cmds[2].startswith("CRVPT 3,1,") and len(cmds) == 2 + len(Ts)
+    with pytest.raises(ValueError):
+        lc.commands(c, 21)                                                  # 370: nur 1 bis 20
+
+    class IO:
+        def __init__(self):
+            self.pts, self.log = {}, []
+
+        def write(self, cmd):
+            self.log.append(cmd)
+            if cmd.startswith("CRVPT "):
+                _, i, uu, tt = cmd[6:].split(",")
+                self.pts[int(i)] = f"{float(uu):+.6E},{float(tt):+.6E}"
+
+        def query(self, cmd):
+            if cmd.startswith("CRVPT? "):
+                return self.pts[int(cmd.split(",")[1])]
+            if cmd.startswith("INSET? "):
+                return "1,10,3,0,1"
+
+    io = IO()
+    for cmd in cmds:
+        io.write(cmd)
+    assert lc.verify(io, c, 3) == []
+    io.pts[2] = "+1.0,+1.0"
+    assert len(lc.verify(io, c, 3)) == 1
+    assert lc.assign(io, 1, 3, 1, pause_s=0) == ["INSET 1,1,10,3,3,1", "SCAN 1,0"]
+
+    csv = tmp_path / "eigen.csv"
+    csv.write_text("R_ohm,T_K\n" + "\n".join(f"{cernox_like(T)},{T}" for T in Ts))
+    c2 = lc.prepare(lc.parse(csv))
+    assert c2["fmt"] == 4 and c2["coef"] == 1 and len(c2["points"]) == 5
+    big = tmp_path / "big.csv"
+    big.write_text("\n".join(f"{cernox_like(2 + i)},{2 + i}" for i in range(250)))
+    with pytest.raises(ValueError, match="at most 200"):
+        lc.prepare(lc.parse(big))
