@@ -14,6 +14,8 @@ Weitere Aufrufe aus einer Eingabeaufforderung in diesem Ordner
   StressCell.exe curve calibrations\cernox_ppms.340 --address GPIB0::12::INSTR --curve 1 --channel 1 --write
   StressCell.exe fit data\<Ordner>\data.csv calibrations\cernox_eigen.csv
   StressCell.exe entropy --cp ... --data ...
+  StressCell.exe merge data\<Ordner>\data.csv ppms_log.dat --offset 0
+      hängt T und B aus dem MultiVu-Log über die Uhrzeit an (data_ppms.csv). Beide Uhren vorher stellen.
 
 Was zusätzlich auf dem Messrechner sein muss
   NI-VISA bzw. NI-488.2 für die GPIB-Karte (Treiber von National Instruments, lässt sich nicht

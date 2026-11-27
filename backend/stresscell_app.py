@@ -6,6 +6,7 @@
     StressCell.exe curve <Datei> ...  Kalibrierkurve in den Lake Shore 370 laden (tools/lakeshore_curve.py)
     StressCell.exe fit <data.csv> <kurve.csv>   Cernox gegen das PPMS kalibrieren (tools/cernox_fit.py)
     StressCell.exe entropy --cp ... --data ...   S(T, sigma) (tools/entropy_map.py)
+    StressCell.exe merge <data.csv> <multivu.dat> [--offset s]   PPMS-T und B nachträglich dazu
 
 Konfiguration: backend\\config.toml neben der exe. Daten: data\\, Logs: logs\\.
 """
@@ -34,6 +35,10 @@ def main():
         import cernox_fit
         cernox_fit.main()
         return
+    if cmd == "merge":
+        del sys.argv[1]
+        import merge_multivu
+        sys.exit(merge_multivu.main())
     if cmd == "entropy":
         del sys.argv[1]
         import entropy_map

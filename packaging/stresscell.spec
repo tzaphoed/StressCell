@@ -15,7 +15,7 @@ BACKEND = os.path.join(ROOT, "backend")
 TOOLS = os.path.join(ROOT, "tools")
 sys.path[:0] = [BACKEND, TOOLS]
 
-hidden = ["server", "check_instruments", "lakeshore_curve", "cernox_fit", "entropy_map",
+hidden = ["server", "check_instruments", "lakeshore_curve", "cernox_fit", "entropy_map", "merge_multivu",
           "pyvisa_py", "serial", "serial.tools.list_ports"]
 hidden += collect_submodules("core") + collect_submodules("instruments")
 hidden += collect_submodules("uvicorn") + collect_submodules("pyvisa_py")

@@ -15,7 +15,9 @@ sequence_dir = "../sequences"
 simulate = true          # true: Simulation, false: echte Geräte
 sim_speed = 10.0         # Zeitraffer der Simulation
 read_only = false        # true: nur lesen, jeder Setzbefehl wird abgelehnt
-ppms_read = true         # PPMS-Daten lesen (T, B, Kammer). false: kein PPMS, engstes Fenster (300 K, Kammer unbekannt)
+ppms_read = false        # PPMS-Daten lesen (T, B, Kammer) über MultiPyVu. false: keine Verbindung zum PPMS-Rechner.
+                         # Unser Aufbau: false. T kommt vom Cernox, B und PPMS-T später mit tools/merge_multivu.py.
+                         # Folgen: Kammer unbekannt -> höchstens 50 V je Stapel, ohne Cernox-Wert das 300-K-Fenster.
 ppms_control = false     # StressCell darf T, B und Kammer stellen. false: das macht MultiVu, StressCell liest nur.
                          # Unser Aufbau: false. T, Feld und Kammer laufen nur am MultiVu-Rechner.
 ppms_emergency_hold = false # true: auch ohne Steuerung Aufwärmen anhalten, wenn die Spannung nicht fällt.
@@ -176,7 +178,7 @@ lockin_cap_phase_deg = 0.0
 voltmeter = "GPIB0::7::INSTR"   # für sample = k2182a oder dmm344xx
 voltmeter_nplc = 1.0
 
-multipyvu_host = "IP-DES-MULTIVU-RECHNERS"   # dort läuft der MultiPyVu-Server, Port 27183 in der Firewall frei
+multipyvu_host = "127.0.0.1"   # nur für ppms_read = true: Rechner mit MultiVu und MultiPyVu-Server
 multipyvu_port = 27183   # Vorgabe von MultiPyVu 3.8
 ppms_bridge_channel = 1
 ppms_bridge_current_uA = 1000.0

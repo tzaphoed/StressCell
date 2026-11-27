@@ -149,11 +149,15 @@ def main():
             else:
                 out(f"  note no curve file {cp.name} in calibrations/: cannot compare with the device curve")
 
-    out(f"\n[cryostat] MultiPyVu at {i['multipyvu_host']}:{i['multipyvu_port']}")
-    cryo = probe("open", lambda: real.PPMS(i["multipyvu_host"], i["multipyvu_port"]))
-    if cryo:
-        probe("identify", cryo.identify)
-        probe("read", cryo.read)
+    if not cfg["mode"].get("ppms_read", True):
+        out("\n[cryostat] ppms_read = false: PPMS not contacted. T from the cell thermometer, "
+            "B later with tools/merge_multivu.py")
+    else:
+        out(f"\n[cryostat] MultiPyVu at {i['multipyvu_host']}:{i['multipyvu_port']}")
+        cryo = probe("open", lambda: real.PPMS(i["multipyvu_host"], i["multipyvu_port"]))
+        if cryo:
+            probe("identify", cryo.identify)
+            probe("read", cryo.read)
 
     out("\n[calibration]")
     cal = probe("load", lambda: ForceCalibration.load(cfg["paths"]["calibration_dir"]

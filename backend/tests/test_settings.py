@@ -85,6 +85,7 @@ def api_file(cfg, tmp_path, monkeypatch):
     for k in ("data_dir", "log_dir", "calibration_dir", "sequence_dir"):
         # ganzer Wert ersetzen: "<tmp>/data_dir_../data" ist unter Windows kein gültiger Pfad
         text = re.sub(rf'^{k} = "[^"]*"', f'{k} = "{tmp_path.as_posix()}/{k}"', text, count=1, flags=re.M)
+    text = re.sub(r"^ppms_read = \w+", "ppms_read = true", text, count=1, flags=re.M)   # Laborwert egal
     p = tmp_path / "config.toml"
     p.write_text(text, encoding="utf-8")
     from core.config import load_config

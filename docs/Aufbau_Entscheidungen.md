@@ -27,7 +27,7 @@ Lake Shore 370 für das Zellthermometer. Die passenden Werte stehen in `backend/
 | Kraft (DC) | AH 2700A, Messfrequenz weg von der ECE-Frequenz | vorhanden | `cap = "ah2700a"`, `capmeter` |
 | Zellthermometer | Cernox CX-1050, **kalibriert** gekauft, auf der Thermal Link Plate nahe der Referenzlötstelle | Cernox beschaffen | `[cell_thermometer]` |
 | Auslesen Cernox | Lake Shore 370 mit Scanner, Cernox auf einem Kanal | vorhanden | `model = "370"`, `input` = Kanal am Scanner |
-| Kryostat | PPMS (T, Rate, Feld), StressCell liest über MultiPyVu | vorhanden | `cryo = "multipyvu"` |
+| Kryostat | PPMS (T, Rate, Feld, Kammer), **nur am MultiVu-Rechner bedient, keine Verbindung zum Messrechner** | vorhanden | `ppms_read = false`, B und PPMS-T später mit `tools/merge_multivu.py` |
 | Kontrolle | Oszilloskop: Spannung am Zugstapel hinter R2, Kurvenform, `gain_verified` | im Labor | von Hand |
 | Reserve | Keithley 2410 (die Software klemmt auf den 200-V-Bereich), Keithley 2450 (nur im SCPI-Modus, nicht TSP) | vorhanden | |
 | Wärmekapazität | PPMS-Option Heat Capacity | vorhanden | außerhalb StressCell |
@@ -111,7 +111,7 @@ Dort weicht das Gespräch ab, gilt dieses Dokument:
 | HV-Kurzschlussbox mit 100 MΩ und 10 kΩ zum Entladen | R1 = 15 kΩ und Bleeder 1 MΩ dauerhaft in der Anschlussbox | wie im RP100, die Stapel hängen nie offen |
 | lineare Kraftkalibrierung F = k(T)·(C − C0) | Razorbill-Formel F = κ(T)·(α/(C − Cp) − f0(T)) | Kalibrierblatt der Zelle #0260 |
 | Lake Shore 372 über `KRDG?` | `RDGK?` und `RDGR?` | Befehlssatz des 370 und 372, so im Treiber umgesetzt |
-| T nur vom Cernox, Feld von Hand | Cernox über den 372 **und** PPMS über MultiPyVu | Das Spannungsfenster nimmt die wärmere der beiden Temperaturen, das Feld kommt automatisch |
+| T nur vom Cernox, Feld von Hand | T nur vom Cernox über den 370, B und PPMS-T nachträglich aus dem MultiVu-Log über die Uhrzeit | Messrechner und PPMS-Rechner sind nicht verbunden. Kammer unbekannt: höchstens 50 V je Stapel |
 
 ## Offene Punkte vor dem ersten Einsatz
 
