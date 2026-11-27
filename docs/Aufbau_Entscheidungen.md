@@ -9,7 +9,8 @@ Lake Shore 370 für das Zellthermometer. Die passenden Werte stehen in `backend/
 
 - **Probe:** Heusler (NiMnSn), **polykristallin**, in der Razorbill FC100 im PPMS
 - **Temperaturbereich:** 2 bis 250 K
-- **Übergänge:** martensitisch (Martensit nach Austenit, erster Ordnung, hysteretisch) und Tc des Austenits (zweiter Ordnung)
+- **Übergänge:** martensitisch bei etwa 100 K (Martensit nach Austenit, erster Ordnung, hysteretisch) und Tc des Austenits bei etwa 350 K (zweiter Ordnung).
+  **Tc liegt außerhalb der Zelle:** FC100 höchstens 50 °C (323 K), StressCell `T_max = 320 K`.
 - **Messungen:**
   - T-Sweeps bei festem Feld und fester Kraft, das PPMS fährt T und Rate
   - Stress-Sweeps bei ausgewählten T und H
@@ -84,7 +85,8 @@ AC-Elastokalorik allein liefert keine Entropie. Unser Weg:
    Spannung, anders als der Weg über (∂S/∂σ)_T = −(C/T)·g mit C bei σ = 0, der nur eine Näherung ist.
    Werkzeug: `tools/entropy_map.py` (Handbuch, Kapitel „Entropie“). g mit Vorzeichen (`dT_dsigma_signed_K_MPa`),
    Polung einmal mit `[ac] tc_sign` am thermoelastischen Effekt festlegen: Zug kühlt weit weg vom Übergang.
-3. **Austenit-Tc** (zweite Ordnung): Dort ist die AC-Methode am stärksten. dTc/dσ kommt aus der Peaklage.
+3. **Austenit-Tc** (zweite Ordnung, etwa 350 K): Dort wäre die AC-Methode am stärksten, aber Tc liegt über der Betriebsgrenze der FC100 (323 K).
+   In dieser Zelle nur die Flanke unterhalb von Tc bis 320 K. dTc/dσ braucht einen anderen Aufbau.
 4. **Martensitischer Übergang:**
    - ΔS_t aus C_p bzw. DSC, die Verschiebung dT_t/dσ aus den T-Sweeps bei mehreren Kräften.
    - Daraus folgt die Entropiekurve unter Stress als starre Verschiebung. Die Annahme explizit nennen: Sie gilt, solange sich ΔS_t und die Form des Übergangs über den σ-Bereich kaum ändern.
@@ -122,5 +124,6 @@ Dort weicht das Gespräch ab, gilt dieses Dokument:
 - [ ] Thermokraft des Type E im Feld: je Feld relativ auswerten oder kalibrieren
 - [ ] Erster Kontakt: `check_instruments.py` mit `read_only = true`
 - [ ] 2f gleichzeitig: zweiten SR830 anschließen (TTL des ersten an REF IN), `lockin2` eintragen
+- [ ] Frequenzsweeps für das Plateau: zuerst im Austenit mit Abstand zum Übergang (von oben angefahren), dann im Martensit, erst danach am Übergang
 - [ ] `[ac] tc_sign` am thermoelastischen Effekt prüfen: weit weg vom Übergang muss Zug kühlen
 - [ ] Volles ΔT_ad bei großen Spannungsschritten: Oszilloskop oder Nanovoltmeter-Puffer, der Messtakt von StressCell (1 s) ist dafür zu langsam
