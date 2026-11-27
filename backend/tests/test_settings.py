@@ -1,5 +1,6 @@
 """Einstellungen aus der Oberfläche: PPMS lesen/steuern, Simulation, Neustart."""
 
+import re
 import time
 import tomllib
 from pathlib import Path
@@ -82,7 +83,8 @@ def api_file(cfg, tmp_path, monkeypatch):
     from fastapi.testclient import TestClient
     text = (ROOT / "config.toml").read_text(encoding="utf-8")
     for k in ("data_dir", "log_dir", "calibration_dir", "sequence_dir"):
-        text = text.replace(f'{k} = "', f'{k} = "{tmp_path.as_posix()}/{k}_', 1)
+        # ganzer Wert ersetzen: "<tmp>/data_dir_../data" ist unter Windows kein gültiger Pfad
+        text = re.sub(rf'^{k} = "[^"]*"', f'{k} = "{tmp_path.as_posix()}/{k}"', text, count=1, flags=re.M)
     p = tmp_path / "config.toml"
     p.write_text(text, encoding="utf-8")
     from core.config import load_config
