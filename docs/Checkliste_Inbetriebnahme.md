@@ -11,8 +11,8 @@ Handbuch Kapitel 5 (Verkabelung) und 9 (Schritt für Schritt).
 | ☐ | Bleeder Druckstapel | **1 MΩ, ≥ 500 V** direkt zwischen braun und blau, zellseitig von R1 | | `bleeder_fitted = true` |
 | ☐ | **SR830 #1** (AC-Anregung + Detektion) | SINE OUT → **R2 = 680 Ω** → **rot (+)** Zugstapel, Schirm SINE OUT → **weiß (−)** | GPIB 8 | `lockin`, `[ac] series_R_ohm = 730` |
 | ☐ | Bleeder Zugstapel | **1 MΩ, ≥ 500 V** zwischen rot und weiß, zellseitig von R2 | | `bleeder_fitted = true` |
-| ☐ | **SR560** (Vorverstärker) | Eingang A und B ← Signalbox ← Thermoelement. OUTPUT (50 Ω) → SR830 #1 Eingang A | keiner | `[ac] preamp_gain` |
-| ☐ | Signalbox Thermoelement | zweipoliger Schalter „Messen / Kurz“, innen Kupfer, verdrillt. Vor jedem Umstecken auf „Kurz“ | | |
+| ☐ | **SR560** (Vorverstärker) | Eingang A ← ein BNC vom Probenkopf (Innenleiter und Schirm = die beiden Thermoelementadern). OUTPUT (50 Ω) → SR830 #1 Eingang A | keiner | `[ac] preamp_gain` |
+| ☐ | Thermoelement-Anschluss | beide Chromel-Enden auf zwei Lötpads nebeneinander (gleiche Temperatur), Kupfer-Koax zum BNC. Vor dem Abziehen BNC-Kurzschlusskappe drauf | | |
 | ☐ | Thermoelement Type E, differentiell | Lötstelle 1 auf der Probe (elektrisch isoliert: GE-Lack/Stycast), Lötstelle 2 auf der Thermal Link Plate neben dem Cernox. Schleife klein und verdrillt | | |
 | ☐ | **AH 2700A** (Kraft) | Koax direkt an den Kraftsensor, **gelbes Band = High**, **schwarz = Low**. Kein Schalter dazwischen, Schirme nicht an den Kryostaten | GPIB 28 | `capmeter`, `[capacitance] frequency_Hz` |
 | ☐ | **Lake Shore 370** + Scanner | Cernox 4-Leiter (I+, I−, V+, V−, paarweise verdrillt) an Scannerkanal 1 | GPIB 12 | `[cell_thermometer] input = "1"` |
@@ -28,7 +28,7 @@ GPIB-Adressen sind Vorschläge: Jede Adresse darf nur einmal vorkommen. `check_i
 | Einstellung | Wert | Warum |
 |---|---|---|
 | Stromversorgung | **Akku**, Netzkabel ab | Netzbrumm und Masseschleife über das Netzteil |
-| Source | **A − B** | Thermoelement differentiell, Gleichtakt fällt heraus |
+| Source | **A** | ein BNC: Innenleiter gegen Schirm. A − B nur bei zwei getrennten BNC |
 | Coupling | **DC** | AC-Kopplung (0,03 Hz) dreht die Phase bei 1 Hz um etwa 2°. Bei Übersteuerung durch Thermo-Offsets: AC, und nur oberhalb von etwa 5 Hz messen |
 | Filter | **Tiefpass 6 dB/Okt., Grenzfrequenz ≥ 100 × höchste Messfrequenz** (z. B. 100 kHz), **kein Hochpass** | Die Software rechnet die Filterphase des SR560 nicht heraus. Jeder Filter nahe f landet in der ECE-Phase |
 | Gain | **100** zum Start, bei tiefer T 500 oder 1000 | Genau diesen Wert als `[ac] preamp_gain` eintragen, sonst ist ΔT um denselben Faktor falsch |

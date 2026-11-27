@@ -46,7 +46,7 @@ Lake Shore 370. Stand: Probe 310 × 170 µm², 1 mm frei. Messrechner und PPMS-R
   <h4>Drei Regeln vorweg</h4>
   <ol class="steps">
     <li>Bis Schritt 3 läuft alles mit <span class="mono">read_only = true</span>: Die Software liest nur.</li>
-    <li>Vor jedem Umstecken am Thermoelement die Signalbox auf <b>„Kurz“</b>. Vor jedem Umstecken an den Stapeln: <b>Drive auf 0, Ausgänge aus</b>.</li>
+    <li>Vor jedem Abziehen des Thermoelement-BNC eine <b>BNC-Kurzschlusskappe</b> auf das Kabel, erst dann vom SR560 trennen. Vor jedem Umstecken an den Stapeln: <b>Drive auf 0, Ausgänge aus</b>.</li>
     <li>STOP ALL fährt alles auf 0 V. Danach geht nichts weiter, bis jemand <b>quittiert</b>. Zurückfahren ist immer erlaubt.</li>
   </ol>
 </div>
@@ -70,8 +70,8 @@ Lake Shore 370. Stand: Probe 310 × 170 µm², 1 mm frei. Messrechner und PPMS-R
   <text x="190" y="96" font-size="9.5">je 950 kΩ Bleeder parallel</text>
   <rect x="20" y="20" width="120" height="44" rx="6" fill="#fff" stroke="#1d232a"/><text x="80" y="38" text-anchor="middle" font-size="11" font-weight="700">Keithley 2400</text><text x="80" y="54" text-anchor="middle" font-size="9">GPIB 24, Front</text>
   <rect x="20" y="90" width="120" height="44" rx="6" fill="#fff" stroke="#1d232a"/><text x="80" y="108" text-anchor="middle" font-size="11" font-weight="700">SR830 #1</text><text x="80" y="124" text-anchor="middle" font-size="9">GPIB 8</text>
-  <rect x="20" y="200" width="120" height="44" rx="6" fill="#fff" stroke="#1d232a"/><text x="80" y="218" text-anchor="middle" font-size="11" font-weight="700">SR560</text><text x="80" y="234" text-anchor="middle" font-size="9">Akku, A − B, Gain 100</text>
-  <rect x="170" y="200" width="100" height="44" rx="6" fill="#fff" stroke="#1d232a"/><text x="220" y="218" text-anchor="middle" font-size="10.5" font-weight="700">Signalbox</text><text x="220" y="234" text-anchor="middle" font-size="9">Messen / Kurz</text>
+  <rect x="20" y="200" width="120" height="44" rx="6" fill="#fff" stroke="#1d232a"/><text x="80" y="218" text-anchor="middle" font-size="11" font-weight="700">SR560</text><text x="80" y="234" text-anchor="middle" font-size="9">Akku, Eingang A, Gain 100</text>
+  <rect x="170" y="200" width="100" height="44" rx="6" fill="#fff" stroke="#1d232a"/><text x="220" y="218" text-anchor="middle" font-size="10.5" font-weight="700">Lötpads</text><text x="220" y="234" text-anchor="middle" font-size="9">Cu-Kabel → 1 × BNC</text>
   <rect x="20" y="330" width="120" height="44" rx="6" fill="#fff" stroke="#5b6670" stroke-dasharray="4 3"/><text x="80" y="348" text-anchor="middle" font-size="11" font-weight="700">SR830 #2 (2f)</text><text x="80" y="364" text-anchor="middle" font-size="9">GPIB 9, optional</text>
   <rect x="570" y="40" width="140" height="44" rx="6" fill="#fff" stroke="#1d232a"/><text x="640" y="58" text-anchor="middle" font-size="11" font-weight="700">Oszilloskop</text><text x="640" y="74" text-anchor="middle" font-size="9">über dem Zugstapel</text>
   <rect x="570" y="150" width="140" height="44" rx="6" fill="#fff" stroke="#1d232a"/><text x="640" y="168" text-anchor="middle" font-size="11" font-weight="700">AH 2700A</text><text x="640" y="184" text-anchor="middle" font-size="9">GPIB 28</text>
@@ -102,8 +102,8 @@ Lake Shore 370. Stand: Probe 310 × 170 µm², 1 mm frei. Messrechner und PPMS-R
   <tr><th style="width:5%">Nr.</th><th style="width:30%">Von</th><th style="width:30%">Nach</th><th>Hinweis</th></tr>
   <tr><td>①</td><td>SR830 #1 <b>SINE OUT</b> (BNC)</td><td>Anschlussbox → R2 680 Ω → <b>rot (+)</b>, Schirm → <b>weiß (−)</b></td><td>AC-Anregung auf den Zugstapel. Schirm von SINE OUT liegt im SR830 auf Gehäusemasse.</td></tr>
   <tr><td>②</td><td>Keithley 2400 <b>Front</b> HI / LO (Bananen)</td><td>Anschlussbox → R1 15 kΩ → <b>braun (+)</b>, LO → <b>blau (−)</b></td><td>DC-Offset auf den Druckstapel. Die Software schaltet auf die Frontbuchsen.</td></tr>
-  <tr><td>③</td><td>Thermoelement (2 Adern aus dem Kryostaten)</td><td>Signalbox, Schalter „Messen / Kurz“</td><td>Beide Adern schalten gemeinsam. Innen Kupfer, verdrillt.</td></tr>
-  <tr><td>④</td><td>Signalbox, 2 × BNC</td><td>SR560 Eingang <b>A</b> und <b>B</b></td><td>Schirme nur auf der SR560-Seite anschließen, in der Box nicht mit Masse verbinden.</td></tr>
+  <tr><td>③</td><td>Thermoelement: die beiden Chromel-Enden (Probe und Referenz)</td><td>zwei Lötpads, dort auf Kupfer, weiter als Koax zum BNC am Probenkopf</td><td>Beide Lötpads dicht nebeneinander auf derselben Temperatur, sonst entsteht an den Übergängen eine eigene Thermospannung.</td></tr>
+  <tr><td>④</td><td><b>ein</b> BNC-Kabel vom Probenkopf</td><td>SR560 Eingang <b>A</b> (B bleibt frei)</td><td>Innenleiter = eine Thermoelementader, Schirm = die andere. Der Schirm ist damit Teil des Messkreises: nirgends sonst an Masse legen.</td></tr>
   <tr><td>⑤</td><td>SR560 <b>OUTPUT</b> (50 Ω)</td><td>SR830 #1 Eingang <b>A</b></td><td>Ein BNC-Kabel.</td></tr>
   <tr><td>⑥</td><td>BNC-T am Eingang A von SR830 #1</td><td>SR830 #2 Eingang <b>A</b></td><td>Nur für 2f gleichzeitig. Beide Eingänge sind hochohmig, das T schadet nicht.</td></tr>
   <tr><td>⑦</td><td>SR830 #1 <b>TTL OUT</b> (Rückseite)</td><td>SR830 #2 <b>REF IN</b></td><td>Nur für 2f gleichzeitig. SR830 #2 läuft auf externer Referenz, die Software stellt TTL-Flanke ein.</td></tr>
@@ -117,7 +117,7 @@ Lake Shore 370. Stand: Probe 310 × 170 µm², 1 mm frei. Messrechner und PPMS-R
   <h4>Masse, so wie bei dir aufgebaut</h4>
   <p><b>Blau (Keithley LO) und weiß</b> liegen auf der Erde, die auch am Kryostaten und am Oszilloskop hängt: richtig. Das gibt beiden Stapeln einen
   festen Bezug. Alle Geräte an <b>eine</b> Steckdosenleiste, möglichst im selben Stromkreis wie das PPMS. <b>Nicht</b> zusätzlich an diese Erde: der
-  Thermoelementkreis (schwebt über SR560 im Akkubetrieb und SR830-Eingang auf Float), die AH-Koax-Schirme und die Cernox-Schirme.
+  Thermoelementkreis samt Schirm des Thermoelement-BNC (schwebt über SR560 im Akkubetrieb und SR830-Eingang auf Float), die AH-Koax-Schirme und die Cernox-Schirme.
   Faustregel: jeder Schirm an genau einem Ende, am Gerät.</p>
 </div>
 
@@ -158,7 +158,7 @@ Lake Shore 370. Stand: Probe 310 × 170 µm², 1 mm frei. Messrechner und PPMS-R
 <table>
   <tr><th style="width:22%">Einstellung</th><th style="width:28%">Wert</th><th>Warum</th></tr>
   <tr><td>Stromversorgung</td><td><b>Akku</b>, Netzkabel ab</td><td>kein Netzbrumm, keine Masseschleife. Akkus vorher laden.</td></tr>
-  <tr><td>Source</td><td><b>A − B</b></td><td>Thermoelement differentiell, Gleichtakt fällt heraus.</td></tr>
+  <tr><td>Source</td><td><b>A</b></td><td>ein BNC: Innenleiter gegen Schirm. A − B nur, wenn beide Adern einzeln als BNC herauskommen.</td></tr>
   <tr><td>Coupling</td><td><b>DC</b></td><td>AC-Kopplung (0,03 Hz) dreht die Phase bei 1 Hz um etwa 2°.</td></tr>
   <tr><td>Filter</td><td><b>Tiefpass 6 dB/oct</b>, Grenze <b>≥ 100 × f</b> (z. B. 100 kHz), <b>kein Hochpass</b></td><td>Die Software rechnet die Filterphase nicht heraus.</td></tr>
   <tr><td>Gain</td><td><b>100</b> (bei tiefer T 500 bis 1000)</td><td>gleich <span class="mono">[ac] preamp_gain</span> in config.toml.</td></tr>
@@ -203,9 +203,9 @@ Lake Shore 370. Stand: Probe 310 × 170 µm², 1 mm frei. Messrechner und PPMS-R
 
 <div class="step"><h3><span class="num">2</span>Signalweg Thermoelement prüfen (ohne Spannung)</h3>
 <ol class="steps">
-  <li>Signalbox auf „Messen“. SR830 #1 bei der geplanten Frequenz (z. B. 13 Hz, nicht 50/100 Hz), AC aus.</li>
+  <li>Thermoelement-BNC am SR560. SR830 #1 bei der geplanten Frequenz (z. B. 13 Hz, nicht 50/100 Hz), AC aus.</li>
   <li>Rauschen von R ansehen, τ = 1 s. Taucht 50 Hz oder 100 Hz auf: Verbindungen einzeln lösen, bis es weg ist (Masseschleife).</li>
-  <li>Kurz auf „Kurz“: R muss deutlich kleiner werden. Sonst kommt das Signal von woanders.</li>
+  <li>Zum Vergleich die Kurzschlusskappe direkt auf den SR560-Eingang: Das ist das Rauschen des Verstärkers. Mit Thermoelement darf es nicht viel größer sein.</li>
 </ol></div>
 
 <div class="step"><h3><span class="num">3</span>Erste Spannung (Raumtemperatur, Luft)</h3>

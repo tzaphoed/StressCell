@@ -23,7 +23,7 @@ Lake Shore 370 für das Zellthermometer. Die passenden Werte stehen in `backend/
 |---|---|---|---|
 | DC-Offset auf den **Druckstapel** | Keithley 2400, davor R1 = 15 kΩ, Bleeder 1 MΩ parallel zum Stapel | vorhanden | `[instruments.compression]` `model = "keithley2400"` |
 | AC-Anregung auf den **Zugstapel** | SR830 SINE OUT, davor **R2 = 680 Ω**, Bleeder 1 MΩ | vorhanden | `lockin_model = "sr830"`, `[ac] series_R_ohm = 730` |
-| Thermospannung (ΔT bei f) | Thermoelement Type E, 12,5 oder 25 µm, differentiell → **SR560** (Batterie, A−B) → derselbe SR830 | SR560 beschaffen oder ausleihen | `[ac] preamp_gain` = Verstärkung am SR560 |
+| Thermospannung (ΔT bei f) | Thermoelement Type E, 12,5 oder 25 µm, differentiell → ein BNC → **SR560** (Batterie, Eingang A) → derselbe SR830 | SR560 beschaffen oder ausleihen | `[ac] preamp_gain` = Verstärkung am SR560 |
 | Kraft (DC) | AH 2700A, Messfrequenz weg von der ECE-Frequenz | vorhanden | `cap = "ah2700a"`, `capmeter` |
 | Zellthermometer | Cernox CX-1050, **kalibriert** gekauft, auf der Thermal Link Plate nahe der Referenzlötstelle | Cernox beschaffen | `[cell_thermometer]` |
 | Auslesen Cernox | Lake Shore 370 mit Scanner, Cernox auf einem Kanal | vorhanden | `model = "370"`, `input` = Kanal am Scanner |
@@ -47,11 +47,13 @@ Lake Shore 370 für das Zellthermometer. Die passenden Werte stehen in `backend/
 - **Anschlussbox HV:** R1 vor dem Keithley, R2 vor dem SR830, je ein Bleeder parallel zu jeder Stapelgruppe (mindestens 500 V Spannungsfestigkeit). Bauteilliste in der Geräteauswahl, Seite 9.
   - Die Bleeder entladen die Stapel dauerhaft, die Stapel hängen also nie offen. Das schützt gegen die pyroelektrische Spannung beim Abkühlen und Aufwärmen.
   - Erst wenn sie eingebaut sind, `bleeder_fitted = true` setzen.
-- **Signalbox Thermoelement:**
-  - Ein zweipoliger Schalter mit den Stellungen „Messen“ und „Kurz“. Beide Adern schalten immer gemeinsam, sonst hängt das Thermoelement halb offen.
-  - Innen Kupfer, verdrillt und symmetrisch gelötet. Das hält die Thermo-EMKs gleich, sie heben sich auf.
-  - Vor jedem Umstecken auf „Kurz“ stellen (Schutz gegen elektrostatische Entladung).
-  - Hochspannung und nV-Signal nicht in dasselbe Gehäuse.
+- **Thermoelement-Anschluss (so aufgebaut):**
+  - Die beiden Chromel-Enden des differentiellen Thermoelements gehen auf zwei Lötpads, von dort Kupfer-Koax zu **einem** BNC: Innenleiter und Schirm sind die beiden Adern.
+  - Die Lötpads dicht nebeneinander, auf derselben Temperatur. Dann heben sich die Thermo-EMKs der Kupferübergänge auf.
+  - SR560 Eingang A (single-ended). Der Schirm gehört zum Messkreis und darf nirgends sonst an Masse.
+  - Vor dem Abziehen eine BNC-Kurzschlusskappe aufstecken (Schutz gegen elektrostatische Entladung).
+  - Hochspannung und nV-Signal nicht im selben Kabelbaum.
+  - Ohne Differenzeingang wirkt kapazitives Übersprechen der Anregung bei f voll. Prüfen: Übersprechen wächst mit f und liegt um 90° zur Stapelspannung, das ECE-Signal ist im Plateau flach.
 - **Kraftsensor:** Koax direkt zur AH, ohne Schalter dazwischen.
   - Gelbes Band an High, schwarzes an Low.
   - Die Schirme dürfen den Kryostaten nicht berühren.
