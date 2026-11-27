@@ -36,6 +36,11 @@ def cfg(tmp_path):
     c["limits"]["tare_T_min_K"] = 0.0           # eigener Test
     c["limits"]["T_cell_tau_s"] = 20.0          # passt zur Sim-Verzögerung
     c["limits"]["drive_cap_V"] = 0.0            # eigener Test (test_safety.py)
+    # Probe, Grenzen und PPMS-Rolle sind Laborwerte in config.toml. Die Tests laufen mit festen Werten.
+    c["limits"].update(force_max_N=20.0, B_max=9.0)
+    c["sample"].update(area_mm2=0.1, length_mm=1.0)
+    c["mode"].update(ppms_read=True, ppms_control=True, ppms_emergency_hold=True)
+    c["cell_thermometer"].update(curve_in="device", calibration="cernox.340")
     return c
 
 

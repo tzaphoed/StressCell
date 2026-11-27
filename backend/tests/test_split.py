@@ -69,6 +69,20 @@ def test_keithley2400_channel_setup_and_ramp():
         ch.set_voltage(250.0)
 
 
+def test_keithley_terminals_switch_only_with_output_off():
+    io = IO({":SOUR:VOLT?": "0.0", ":OUTP?": "0", ":ROUT:TERM?": "REAR"})
+    ch = sources.Keithley2400Channel(io, 6e-3, "front")
+    ch._stop.set()
+    assert ":ROUT:TERM FRON" in io.log
+    io = IO({":SOUR:VOLT?": "0.0", ":OUTP?": "0", ":ROUT:TERM?": "FRON"})
+    sources.Keithley2400Channel(io, 6e-3, "front")._stop.set()
+    assert not any(c.startswith(":ROUT:TERM ") for c in io.log)        # schon richtig: nichts schreiben
+    io = IO({":SOUR:VOLT?": "40.0", ":OUTP?": "1", ":ROUT:TERM?": "REAR"})
+    with pytest.raises(RuntimeError, match="output on"):
+        sources.Keithley2400Channel(io, 6e-3, "front")
+    assert not any(c.startswith(":ROUT:TERM ") for c in io.log)        # nie unter Spannung umschalten
+
+
 def test_keithley2450_and_b2900_and_2600_commands():
     k = sources.Keithley2450Channel(IO({":SOUR:VOLT?": "0", ":OUTP?": "0"}), 5e-3)
     k._stop.set()

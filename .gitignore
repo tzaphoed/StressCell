@@ -7,3 +7,5 @@ data/
 logs/
 *.tare.json
 *.log
+build/
+dist/

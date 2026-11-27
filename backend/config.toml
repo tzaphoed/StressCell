@@ -16,8 +16,11 @@ simulate = true          # true: Simulation, false: echte Geräte
 sim_speed = 10.0         # Zeitraffer der Simulation
 read_only = false        # true: nur lesen, jeder Setzbefehl wird abgelehnt
 ppms_read = true         # PPMS-Daten lesen (T, B, Kammer). false: kein PPMS, engstes Fenster (300 K, Kammer unbekannt)
-ppms_control = true      # StressCell darf T, B und Kammer stellen. false: das macht MultiVu, StressCell liest nur
-ppms_emergency_hold = true  # auch ohne Steuerung: Aufwärmen anhalten, wenn die Spannung nicht fällt
+ppms_control = false     # StressCell darf T, B und Kammer stellen. false: das macht MultiVu, StressCell liest nur.
+                         # Unser Aufbau: false. T, Feld und Kammer laufen nur am MultiVu-Rechner.
+ppms_emergency_hold = false # true: auch ohne Steuerung Aufwärmen anhalten, wenn die Spannung nicht fällt.
+                            # Unser Aufbau: false, StressCell schreibt nie ans PPMS. Unbedenklich, solange
+                            # drive_cap_V <= 20 V: dann liegt jede erlaubte Spannung bei jeder T im Fenster.
 
 [monitor]
 tick_s = 1.0             # Takt von Abfrage, Guard und Kraftregler
@@ -36,13 +39,14 @@ slew_default_V_s = 1.0   # ohne Angabe. Bei 300 K etwa 1,7 N/s (beide Kanäle la
 slew_max_V_s = 10.0      # RP100-Handbuch: unter 100 V/s, langsamer heizt weniger
 guard_slew_V_s = 20.0    # Rampe, mit der der Guard zurückfährt
 output_off_V_max = 5.0   # Ausgänge nur nahe 0 V aus, sonst Kraftsprung an der Probe
-drive_cap_V = 10.0       # eigene Obergrenze |V| je Stapel, zusätzlich zum Datenblattfenster. 0 = aus.
+drive_cap_V = 1.2        # eigene Obergrenze |V| je Stapel, zusätzlich zum Datenblattfenster. 0 = aus.
+                         # 1,2 V x 1,3 N/V (Blockierkraft) = 1,5 N: hält auch bei unendlich steifer Probe.
                          # Für die Inbetriebnahme klein lassen, erst nach den ersten Läufen hochsetzen.
 transition_V_max = 50.0  # Betrag je Kanal, während die Kammer pumpt, flutet oder spült
 sealed_V_max = 80.0      # Betrag je Kanal in abgeschlossenem Niederdruck-He. Razorbill: Bogen ab knapp über 100 V
 current_trip_A = 2e-3    # darüber: Lichtbogen oder Kurzschluss angenommen, Ausgänge aus
 current_trip_ticks = 2   # Zähler, steigt je Überschreitung um 1, fällt sonst um 0,25
-force_max_N = 20.0       # Kraftgrenze für DIESE Probe. Vor dem Messen anpassen!
+force_max_N = 1.5        # Kraftgrenze für DIESE Probe: 1,5 N / 0,0527 mm² = 28 MPa. Ziel später 100 MPa = 5,3 N
 force_step_trip_N = 0.5  # Mindestabfall je Abfrage, der nicht vom Drive kommt: Probe gerissen
 force_step_frac = 0.3    # und mindestens dieser Anteil der Kraft
 G_ceiling_N_V = 1.3      # obere Grenze dF/dD, Datenblatt 170 N bei 140 V
@@ -53,7 +57,7 @@ force_noise_N = 0.05     # Startwert des Kraftrauschens, wird im Lauf gemessen
 T_min = 1.8              # K
 T_max = 320.0            # K, Datenblatt: maximale Betriebstemperatur 50 °C
 T_rate_max = 10.0        # K/min, Datenblatt: niemals schneller
-B_max = 9.0              # T, an den eigenen Magneten anpassen
+B_max = 14.0             # T, PPMS 14 T
 B_rate_max = 0.6         # T/min
 excitation_max_Vrms = 14.0  # Datenblatt: 40 V Spitze-Spitze, entspricht 14,1 V rms
 wait_max_s = 172800
@@ -104,9 +108,9 @@ G_drive_tol_V = 10.0      # dF/dD gilt nur bis so weit vom Offset, an dem es gem
 dc_gain = 1.0             # Verstärkung vor dem Nanovoltmeter/DMM (1: direkt am Thermoelement)
 
 [sample]
-name = "sample"
-area_mm2 = 0.1           # für die Spannung in MPa
-length_mm = 1.0
+name = "NiMnSn"
+area_mm2 = 0.0527         # 310 um x 170 um, für die Spannung in MPa
+length_mm = 1.0          # freie Länge zwischen den Klebestellen
 
 [cell_thermometer]
 # Eigenes Thermometer an der Zelle (Cernox). Handbuch Kapitel "Zellthermometer".
@@ -117,8 +121,9 @@ address = "GPIB0::12::INSTR"
 input = "1"               # Lake Shore Eingang (218, 370, 372: Kanalnummer, z. B. "1"). Am Scanner prüfen, wo der Cernox hängt!
 channel = 2               # ppms_bridge: Kanal der Resistivity-Option
 current_uA = 10.0         # ppms_bridge: Messstrom. Cernox heizt sich bei tiefer T sonst selbst
-calibration = "cernox.340"  # Kurve R -> T im Ordner calibrations (.340 oder csv R_ohm,T_K)
-curve_in = "device"       # lakeshore: device = Kurve im Gerät (RDGK?) | software = StressCell rechnet mit calibration
+calibration = "cernox_ppms.340"  # Kurve R -> T im Ordner calibrations (.340 oder csv R_ohm,T_K). 0,55 bis 265,6 K
+curve_in = "software"     # lakeshore: device = Kurve im Gerät (RDGK?) | software = StressCell rechnet mit calibration
+                          # software interpoliert log T gegen log R: bei 100 K etwa 3 mK statt 20 mK im 370
                           # Kurve in den 370 laden: python tools/lakeshore_curve.py calibrations/cernox.340 (Handbuch)
 window = "max"            # max: höhere aus PPMS und Cernox (sicher in beide Richtungen) | cernox: nur Cernox
 margin_K = 1.0            # Reserve auf die Cernox-Temperatur
@@ -171,7 +176,7 @@ lockin_cap_phase_deg = 0.0
 voltmeter = "GPIB0::7::INSTR"   # für sample = k2182a oder dmm344xx
 voltmeter_nplc = 1.0
 
-multipyvu_host = "127.0.0.1"
+multipyvu_host = "IP-DES-MULTIVU-RECHNERS"   # dort läuft der MultiPyVu-Server, Port 27183 in der Firewall frei
 multipyvu_port = 27183   # Vorgabe von MultiPyVu 3.8
 ppms_bridge_channel = 1
 ppms_bridge_current_uA = 1000.0
@@ -196,6 +201,7 @@ bleeder_R_ohm = 1.0e6     # Entladewiderstand parallel zum Stapel, >= 500 V Span
 bleeder_fitted = false    # erst true, wenn er wirklich eingebaut ist
 
 [instruments.compression]
+terminals = "front"       # front | rear: Buchsen am Keithley 2400/2450, umgeschaltet nur bei Ausgang aus
 # Druckstapel: Adern braun (+) und blau (-).
 source = "smu"
 model = "keithley2400"    # keithley2400 | keithley2410 | keithley2420 | keithley2450 | keithley2600 | b2900

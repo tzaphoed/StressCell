@@ -11,7 +11,7 @@ Was passiert:
   5. Sicherheitsrelevante Konfiguration prüfen (Bleeder, Verstärkung, verified).
 
 Geschrieben wird nur bei der Kapazitätsmessung, und auch nur Format und Messfunktion
-beim Öffnen. Das Ergebnis landet in instrument_check_<Zeit>.txt zum Weitergeben.
+beim Öffnen. Das Ergebnis landet in logs/instrument_check_<Zeit>.txt zum Weitergeben.
 """
 
 from __future__ import annotations
@@ -168,7 +168,7 @@ def main():
     for f in config_findings(cfg) or ["none found"]:
         out(f"  - {f}")
 
-    p = Path(f"instrument_check_{datetime.now():%Y%m%d_%H%M%S}.txt")
+    p = Path(cfg["paths"]["log_dir"]) / f"instrument_check_{datetime.now():%Y%m%d_%H%M%S}.txt"
     p.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("\nsaved", p)
 

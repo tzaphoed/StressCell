@@ -148,14 +148,32 @@ class SoftRampSource(ChannelSource):
 
 
 # ── SMU ──────────────────────────────────────────────────────────────────
+def select_terminals(io, terminals):
+    """Keithley 2400/2450: Front- oder Rückbuchsen. Nur umschalten, wenn der Ausgang aus ist: das
+    Gerät würde sonst den Ausgang abwerfen, und die Probe sähe einen Kraftsprung."""
+    if not terminals:
+        return
+    want = {"front": "FRON", "rear": "REAR"}.get(str(terminals).lower())
+    if want is None:
+        raise ValueError(f"terminals = {terminals!r}: use front or rear")
+    now = io.query(":ROUT:TERM?").strip().upper()
+    if now.startswith(want):
+        return
+    if bool(int(float(io.query(":OUTP?")))):
+        raise RuntimeError(f"SMU uses {now} terminals with the output on, config says {terminals}. "
+                           "Ramp to 0 V and switch the output off at the instrument first.")
+    io.write(f":ROUT:TERM {want}")
+
+
 class Keithley2400Channel(SoftRampSource):
     """Keithley 2400, 2410, 2420, 2440 (SCPI). Der 2410 hat einen 1000-V-Bereich: die Grenze
     setzt hier V_ABS_MAX und das Fenster, nicht das Gerät."""
 
-    def __init__(self, io, compliance_A=6e-3):
+    def __init__(self, io, compliance_A=6e-3, terminals=None):
         super().__init__()
         self.io = io
         io.write("*CLS")
+        select_terminals(io, terminals)
         io.write(":SOUR:FUNC VOLT")
         io.write(":SOUR:VOLT:RANG 200")
         io.write(f":SENS:CURR:PROT {compliance_A:g}")
@@ -189,10 +207,11 @@ class Keithley2400Channel(SoftRampSource):
 class Keithley2450Channel(SoftRampSource):
     """Keithley 2450 im SCPI-Modus (nicht TSP, am Gerät unter Menu > Settings umstellen)."""
 
-    def __init__(self, io, compliance_A=6e-3):
+    def __init__(self, io, compliance_A=6e-3, terminals=None):
         super().__init__()
         self.io = io
         io.write("*CLS")
+        select_terminals(io, terminals)
         io.write(":SOUR:FUNC VOLT")
         io.write(":SOUR:VOLT:RANG 200")
         io.write(f":SOUR:VOLT:ILIM {compliance_A:g}")

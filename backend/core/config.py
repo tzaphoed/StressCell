@@ -6,7 +6,13 @@ import os
 import tomllib
 from pathlib import Path
 
-BACKEND_DIR = Path(__file__).resolve().parent.parent
+import sys
+
+# Als exe (PyInstaller) liegen Config, Oberfläche und Daten neben der exe, nicht im entpackten Code.
+if getattr(sys, "frozen", False):
+    BACKEND_DIR = Path(sys.executable).resolve().parent / "backend"
+else:
+    BACKEND_DIR = Path(__file__).resolve().parent.parent
 
 
 def load_config(path: str | os.PathLike | None = None) -> dict:

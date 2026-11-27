@@ -1,0 +1,26 @@
+StressCell als Windows-Programm
+===============================
+
+Den ganzen Ordner kopieren, z. B. nach C:\StressCell (nicht nach "Programme": dort darf das
+Programm config.toml, data\ und logs\ nicht schreiben). Python muss nicht installiert sein.
+
+Starten
+  StressCell starten.bat    nach backend\config.toml, Browser öffnet http://127.0.0.1:8020/
+  Simulation.bat            ohne Geräte, Zeitraffer 20
+  Geraete pruefen.bat       alle Geräte nur lesen, Bericht in logs\instrument_check_*.txt
+
+Weitere Aufrufe aus einer Eingabeaufforderung in diesem Ordner
+  StressCell.exe curve calibrations\cernox_ppms.340                 zeigt, was in den 370 ginge
+  StressCell.exe curve calibrations\cernox_ppms.340 --address GPIB0::12::INSTR --curve 1 --channel 1 --write
+  StressCell.exe fit data\<Ordner>\data.csv calibrations\cernox_eigen.csv
+  StressCell.exe entropy --cp ... --data ...
+
+Was zusätzlich auf dem Messrechner sein muss
+  NI-VISA bzw. NI-488.2 für die GPIB-Karte (Treiber von National Instruments, lässt sich nicht
+  mitliefern). Ohne ihn sieht das Programm nur serielle und Netzwerkgeräte.
+
+Was wo liegt
+  backend\config.toml   Geräte, Grenzen, Probe. Vor dem ersten Einsatz durchgehen!
+  calibrations\         Kraftkalibrierung der Zelle und Cernox-Kurve
+  data\, logs\          Messdaten und Protokolle (legt das Programm an)
+  docs\                 Handbuch (auch im Programm unter Hilfe, F1), Checkliste

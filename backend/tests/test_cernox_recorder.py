@@ -255,7 +255,7 @@ def test_check_instruments_runs_through_with_fake_devices(cfg, tmp_path, monkeyp
     text = capsys.readouterr().out
     assert "[cell thermometer] Lake Shore 336" in text and "X98765" in text and "295.1" in text
     assert "FAIL open: OSError: no MultiVu here" in text
-    assert list(tmp_path.glob("instrument_check_*.txt"))
+    assert list(c["paths"]["log_dir"].glob("instrument_check_*.txt"))
 
 
 def test_lakeshore_370_uses_bridge_commands():

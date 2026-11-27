@@ -554,9 +554,9 @@ def _smu_channel(pool, cc):
     comp = float(cc.get("compliance_A", 6e-3))
     addr = cc["address"]
     if model in ("keithley2400", "keithley2410", "keithley2420"):
-        return sources.Keithley2400Channel(pool.get(addr), comp)
+        return sources.Keithley2400Channel(pool.get(addr), comp, cc.get("terminals"))
     if model == "keithley2450":
-        return sources.Keithley2450Channel(pool.get(addr), comp)
+        return sources.Keithley2450Channel(pool.get(addr), comp, cc.get("terminals"))
     if model == "keithley2600":
         return sources.Keithley2600Channel(pool.get(addr), cc.get("channel", "a"), comp, close_io=False)
     if model == "b2900":

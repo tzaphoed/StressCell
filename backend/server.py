@@ -24,7 +24,8 @@ import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-BACKEND = Path(__file__).resolve().parent
+BACKEND = (Path(sys.executable).resolve().parent / "backend" if getattr(sys, "frozen", False)
+           else Path(__file__).resolve().parent)          # exe: Ordner neben StressCell.exe
 sys.path.insert(0, str(BACKEND))
 
 import uvicorn                                                     # noqa: E402
